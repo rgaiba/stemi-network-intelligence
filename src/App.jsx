@@ -370,14 +370,15 @@ function AboutPage({ onBack }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// FIGURE 1 — Hero comparison: traditional vs network-aware
-// dispatch. This is the central illustration that demonstrates
-// the solution.
+// FIGURE 1 — Hero illustration of the network advantage:
+// live multi-path computation against NCDR-conditioned
+// predictions of DIDO and D2B time, vs. a single static rule.
 // ─────────────────────────────────────────────────────────────
 function NetworkAwareFigure() {
   const C = {
     navy: '#1a3759',
     teal: '#1f7d75',
+    tealS:'#0fa896',
     gold: '#b8860b',
     red:  '#c62828',
     text: '#1a1e2e',
@@ -385,89 +386,72 @@ function NetworkAwareFigure() {
     border:'#d4d6dc',
     bg:   '#fafaf7',
     panel:'#ffffff',
-    fade: '#cbd5e1',
+    fade: '#a0a8b8',
   }
   const fSans = 'Inter, ui-sans-serif, system-ui, sans-serif'
   const fMono = 'JetBrains Mono, ui-monospace, SFMono-Regular, monospace'
 
-  // Map node positions (within the panel-relative map area at translate(20, 70))
-  const PCI     = { x: 240, y: 36 }
-  const SPOKE   = { x: 215, y: 138 }
-  const PATIENT = { x: 270, y: 244 }
+  // Map node positions inside a 480 wide × 280 tall map area
+  const CHRIST  = { x:  60, y:  40 }   // Christiana PCI hub (north)
+  const KENT    = { x: 320, y:  92 }   // Kent PCI hub (mid-east)
+  const SPOKE   = { x: 240, y: 168 }   // Milford spoke ED
+  const PATIENT = { x: 290, y: 240 }   // STEMI in rural Sussex
   const ALL_EMS = [
-    { x:  85, y:  74 }, { x: 390, y:  60 },
-    { x: 130, y: 158 }, { x: 350, y: 174 },
-    { x: 175, y: 256 }, { x: 350, y: 264 },
+    { x:  90, y:  88 }, { x: 380, y:  64 },
+    { x: 140, y: 162 }, { x: 380, y: 178 },
+    { x: 200, y: 248 }, { x: 380, y: 248 },
   ]
-  // In the traditional configuration only zone-C units are visible to the dispatching system
-  const TRAD_VISIBLE = [false, false, false, false, true, true]
 
-  // Dispatched-unit indices (what the system actually picks)
-  const TRAD_DISPATCHED = 4 // U5 in zone C
-  const NET_DISPATCHED  = 5 // U6 in zone C, but illustrative — could be a cross-zone unit
-
-  // Map zones (horizontal bands inside the service-area rectangle)
-  const ZB1 = 100  // bottom of zone A
-  const ZB2 = 208  // bottom of zone B  (zone C runs to 280)
-
-  // Render the map scene; `mode` is 'traditional' or 'network'
+  // Render the map scene. mode = 'static' shows one fixed-rule path.
+  // mode = 'network' shows all three candidate pathways with the
+  // selected one highlighted.
   const MapScene = ({ mode }) => {
-    const isTrad = mode === 'traditional'
+    const isStatic = mode === 'static'
     return (
-      <g transform="translate(20, 70)">
+      <g transform="translate(16, 60)">
         {/* Service-area background */}
         <rect width="480" height="280" fill="#fcfcf8" stroke={C.border} strokeWidth="1" rx="3" />
+        <text x="468" y="16" fontFamily={fMono} fontSize="8" fill={C.muted} textAnchor="end">N ↑</text>
 
-        {/* Agency / zone boundaries */}
-        <line x1="0" y1={ZB1} x2="480" y2={ZB1}
-          stroke={isTrad ? '#7a7f8e' : '#e5e7eb'}
-          strokeWidth={isTrad ? 1.4 : 0.8}
-          strokeDasharray={isTrad ? '0' : '4 3'} />
-        <line x1="0" y1={ZB2} x2="480" y2={ZB2}
-          stroke={isTrad ? '#7a7f8e' : '#e5e7eb'}
-          strokeWidth={isTrad ? 1.4 : 0.8}
-          strokeDasharray={isTrad ? '0' : '4 3'} />
+        {/* EMS units (informational, same in both modes) */}
+        {ALL_EMS.map((u, i) => (
+          <circle key={i} cx={u.x} cy={u.y} r="3.5" fill={C.text} stroke="#fff" strokeWidth="0.8" />
+        ))}
 
-        {/* Zone labels */}
-        {isTrad ? (
-          <g fontFamily={fMono} fontSize="9" fill={C.muted} fontWeight="600" letterSpacing="0.6">
-            <text x="8" y="16">AGENCY A</text>
-            <text x="8" y={ZB1 + 16}>AGENCY B</text>
-            <text x="8" y={ZB2 + 16}>AGENCY C</text>
-          </g>
-        ) : (
-          <text x="8" y="16" fontFamily={fMono} fontSize="9" fill={C.muted} fontStyle="italic">
-            unified dispatch surface (boundaries administrative only)
-          </text>
-        )}
-
-        {/* EMS units */}
-        {ALL_EMS.map((u, i) => {
-          const visible = isTrad ? TRAD_VISIBLE[i] : true
-          const dispatched = (isTrad && i === TRAD_DISPATCHED) || (!isTrad && i === NET_DISPATCHED)
-          const fill = dispatched ? (isTrad ? C.red : C.teal) : (visible ? C.text : C.fade)
-          return (
-            <g key={i}>
-              {dispatched && (
-                <circle cx={u.x} cy={u.y} r="11" fill="none" stroke={isTrad ? C.red : C.teal} strokeWidth="1.2" strokeOpacity="0.5" />
-              )}
-              <circle cx={u.x} cy={u.y} r="5" fill={fill} stroke="#fff" strokeWidth="1" />
+        {/* Hubs and spoke. In network mode each facility carries the live
+            facility-conditioned process-time tag (D2B for hubs, DIDO for spoke). */}
+        <g transform={`translate(${CHRIST.x}, ${CHRIST.y})`}>
+          <circle r="13" fill={C.navy} />
+          <path d="M -6 0 L 6 0 M 0 -6 L 0 6" stroke="#fff" strokeWidth="1.8" />
+          <text x="0" y="-20" fontFamily={fSans} fontSize="9.5" fontWeight="700" fill={C.navy} textAnchor="middle">Christiana PCI</text>
+          {!isStatic && (
+            <g transform="translate(0, 22)">
+              <rect x="-30" y="0" width="60" height="14" rx="2" fill="#fff" stroke={C.navy} strokeWidth="0.7" />
+              <text x="0" y="10" fontFamily={fMono} fontSize="8.5" fontWeight="700" fill={C.navy} textAnchor="middle">D2B 58m</text>
             </g>
-          )
-        })}
-
-        {/* PCI Hub (always present, top center) */}
-        <g transform={`translate(${PCI.x}, ${PCI.y})`}>
-          <circle r="15" fill={C.navy} />
-          <path d="M -7 0 L 7 0 M 0 -7 L 0 7" stroke="#fff" strokeWidth="2" />
-          <text x="0" y="-22" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.navy} textAnchor="middle">PCI HUB</text>
+          )}
         </g>
-
-        {/* Spoke ED (faded in network-aware view to signal it is bypassed) */}
-        <g transform={`translate(${SPOKE.x}, ${SPOKE.y})`} opacity={isTrad ? 1 : 0.35}>
+        <g transform={`translate(${KENT.x}, ${KENT.y})`}>
+          <circle r="14" fill={C.navy} />
+          <path d="M -7 0 L 7 0 M 0 -7 L 0 7" stroke="#fff" strokeWidth="2" />
+          <text x="0" y="-21" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.navy} textAnchor="middle">Kent PCI</text>
+          {!isStatic && (
+            <g transform="translate(0, 22)">
+              <rect x="-32" y="0" width="64" height="14" rx="2" fill={C.navy} stroke={C.navy} strokeWidth="0.7" />
+              <text x="0" y="10" fontFamily={fMono} fontSize="8.5" fontWeight="700" fill="#fff" textAnchor="middle">D2B 48m ✓</text>
+            </g>
+          )}
+        </g>
+        <g transform={`translate(${SPOKE.x}, ${SPOKE.y})`}>
           <rect x="-10" y="-10" width="20" height="20" fill="#fff" stroke={C.muted} strokeWidth="1.4" />
           <text x="0" y="3" fontFamily={fSans} fontSize="9" fontWeight="700" fill={C.muted} textAnchor="middle">ED</text>
-          <text x="0" y="-16" fontFamily={fSans} fontSize="9" fill={C.muted} textAnchor="middle">Spoke</text>
+          <text x="0" y="-16" fontFamily={fSans} fontSize="9" fill={C.muted} textAnchor="middle">Milford</text>
+          {!isStatic && (
+            <g transform="translate(0, 18)">
+              <rect x="-32" y="0" width="64" height="14" rx="2" fill="#fff" stroke={C.gold} strokeWidth="0.8" />
+              <text x="0" y="10" fontFamily={fMono} fontSize="8.5" fontWeight="700" fill={C.gold} textAnchor="middle">DIDO 40m</text>
+            </g>
+          )}
         </g>
 
         {/* Patient origin */}
@@ -477,31 +461,81 @@ function NetworkAwareFigure() {
           <text x="14" y="4" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.red}>STEMI</text>
         </g>
 
-        {/* Routing path */}
-        {isTrad ? (
-          <g fill="none">
-            {/* Patient → Spoke ED → PCI Hub (two-leg, suboptimal) */}
+        {isStatic ? (
+          <g>
+            {/* Static rule: route via nearest spoke. One fixed path drawn. */}
             <line x1={PATIENT.x} y1={PATIENT.y} x2={SPOKE.x} y2={SPOKE.y}
-              stroke={C.red} strokeWidth="2.4" strokeDasharray="7 4"
+              stroke={C.red} strokeWidth="2.4" strokeDasharray="7 4" fill="none"
               markerEnd="url(#tradArr)" />
-            <line x1={SPOKE.x} y1={SPOKE.y} x2={PCI.x} y2={PCI.y}
-              stroke={C.red} strokeWidth="2.4" strokeDasharray="7 4"
+            <line x1={SPOKE.x} y1={SPOKE.y} x2={KENT.x} y2={KENT.y}
+              stroke={C.red} strokeWidth="2.4" strokeDasharray="7 4" fill="none"
               markerEnd="url(#tradArr)" />
-            {/* leg labels */}
-            <text x={(PATIENT.x + SPOKE.x) / 2 + 12} y={(PATIENT.y + SPOKE.y) / 2}
-              fontFamily={fMono} fontSize="9" fill={C.red}>1 · transport</text>
-            <text x={(SPOKE.x + PCI.x) / 2 + 12} y={(SPOKE.y + PCI.y) / 2}
-              fontFamily={fMono} fontSize="9" fill={C.red}>2 · transfer</text>
+            <text x="240" y="270" fontFamily={fMono} fontSize="9" fill={C.red} textAnchor="middle" fontStyle="italic">
+              static rule output: distance threshold sends patient via nearest spoke
+            </text>
           </g>
         ) : (
-          <g fill="none">
-            {/* Patient → PCI Hub direct (optimal) */}
-            <line x1={PATIENT.x} y1={PATIENT.y} x2={PCI.x} y2={PCI.y}
-              stroke={C.teal} strokeWidth="3.2"
+          <g>
+            {/* Path B (rejected) — Via Milford spoke */}
+            <line x1={PATIENT.x} y1={PATIENT.y} x2={SPOKE.x} y2={SPOKE.y}
+              stroke={C.fade} strokeWidth="1.4" strokeDasharray="4 3" fill="none" />
+            <line x1={SPOKE.x} y1={SPOKE.y} x2={KENT.x} y2={KENT.y}
+              stroke={C.fade} strokeWidth="1.4" strokeDasharray="4 3" fill="none" />
+            <PathTag x={258} y={210} label="B" fill={C.fade} />
+
+            {/* Path C (rejected) — Direct → Christiana */}
+            <line x1={PATIENT.x} y1={PATIENT.y} x2={CHRIST.x} y2={CHRIST.y}
+              stroke={C.fade} strokeWidth="1.4" strokeDasharray="4 3" fill="none" />
+            <PathTag x={170} y={138} label="C" fill={C.fade} />
+
+            {/* Path A (selected) — Direct → Kent (drawn last so it sits on top) */}
+            <line x1={PATIENT.x} y1={PATIENT.y} x2={KENT.x} y2={KENT.y}
+              stroke={C.teal} strokeWidth="3.2" fill="none"
               markerEnd="url(#netArr)" />
-            <text x={(PATIENT.x + PCI.x) / 2 + 14} y={(PATIENT.y + PCI.y) / 2}
-              fontFamily={fMono} fontSize="9.5" fontWeight="700" fill={C.teal}>direct PCI bypass</text>
+            <PathTag x={310} y={170} label="A" fill={C.teal} />
           </g>
+        )}
+      </g>
+    )
+  }
+
+  // Lettered chip used to correlate map paths with the legend rows
+  const PathTag = ({ x, y, label, fill }) => (
+    <g transform={`translate(${x}, ${y})`}>
+      <circle r="9" fill={fill} stroke="#fff" strokeWidth="1.5" />
+      <text y="3" fontFamily={fSans} fontSize="10" fontWeight="700" fill="#fff" textAnchor="middle">{label}</text>
+    </g>
+  )
+
+  // A single candidate row for the right-panel legend
+  const CandidateRow = ({ y, code, name, expected, prob, selected }) => {
+    const tone  = selected ? C.teal : C.muted
+    const fillR = selected ? '#f0faf8' : '#fff'
+    const stroke = selected ? C.teal : C.border
+    return (
+      <g transform={`translate(0, ${y})`}>
+        <rect width="480" height="44" rx="3" fill={fillR} stroke={stroke} strokeWidth={selected ? 1.2 : 0.6} />
+        {/* Code chip */}
+        <g transform="translate(22, 22)">
+          <circle r="11" fill={tone} />
+          <text y="3.5" fontFamily={fSans} fontSize="11" fontWeight="700" fill="#fff" textAnchor="middle">{code}</text>
+        </g>
+        <text x="42" y="18" fontFamily={fSans} fontSize="11.5" fontWeight={selected ? 700 : 600} fill={C.text}>{name}</text>
+        <text x="42" y="32" fontFamily={fSans} fontSize="9.5" fill={C.muted}>Computed against live network state</text>
+        {/* Expected time */}
+        <text x="320" y="20" fontFamily={fMono} fontSize="14" fontWeight="700" fill={tone} textAnchor="end">{expected}</text>
+        <text x="320" y="34" fontFamily={fMono} fontSize="9" fill={C.muted} textAnchor="end">expected min</text>
+        {/* Probability ≤ 90 */}
+        <text x="402" y="20" fontFamily={fMono} fontSize="14" fontWeight="700" fill={tone} textAnchor="end">{prob}</text>
+        <text x="402" y="34" fontFamily={fMono} fontSize="9" fill={C.muted} textAnchor="end">prob ≤ 90</text>
+        {/* Selection mark */}
+        {selected ? (
+          <g transform="translate(440, 14)">
+            <rect width="32" height="20" rx="3" fill={C.teal} />
+            <text x="16" y="14" fontFamily={fMono} fontSize="11" fontWeight="700" fill="#fff" textAnchor="middle">✓</text>
+          </g>
+        ) : (
+          <text x="456" y="28" fontFamily={fMono} fontSize="12" fill={C.muted} textAnchor="middle">·</text>
         )}
       </g>
     )
@@ -514,12 +548,12 @@ function NetworkAwareFigure() {
           Figure 1
         </span>
         <span className="text-[12px] text-[#3a4055] italic">
-          The solution: network-aware dispatch versus traditional dispatch for STEMI
+          Live multi-path computation: the network advantage
         </span>
       </div>
 
       <div className="p-3 sm:p-5 bg-white">
-        <svg viewBox="0 0 1100 480" className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+        <svg viewBox="0 0 1120 760" className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
           <defs>
             <marker id="tradArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
               <path d="M 0 0 L 10 5 L 0 10 z" fill={C.red} />
@@ -527,83 +561,114 @@ function NetworkAwareFigure() {
             <marker id="netArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto">
               <path d="M 0 0 L 10 5 L 0 10 z" fill={C.teal} />
             </marker>
-            <marker id="goldArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill={C.gold} />
-            </marker>
           </defs>
 
-          {/* ─────────── LEFT PANEL · Traditional ─────────── */}
+          {/* ───── ROW 1: side-by-side maps (BEFORE / AFTER) ───── */}
+
+          {/* LEFT panel — Static dispatch */}
           <g transform="translate(0, 0)">
-            <rect x="20" y="20" width="520" height="440" fill={C.panel} stroke={C.border} rx="3" />
+            <rect x="20" y="0" width="520" height="430" fill={C.panel} stroke={C.border} strokeWidth="1" rx="3" />
             {/* Title strip */}
-            <rect x="20" y="20" width="520" height="40" fill="#fafaf7" />
-            <text x="34" y="42" fontFamily={fMono} fontSize="10" fontWeight="700" fill={C.muted} letterSpacing="1.4">BEFORE</text>
-            <text x="100" y="42" fontFamily={fSans} fontSize="13.5" fontWeight="700" fill={C.text}>Traditional dispatch</text>
-            <text x="100" y="56" fontFamily={fSans} fontSize="9.5" fill={C.muted}>Siloed agencies · static bypass protocols · no cross-jurisdictional visibility</text>
+            <rect x="20" y="0" width="520" height="40" fill="#fafaf7" />
+            <text x="34" y="22" fontFamily={fMono} fontSize="10" fontWeight="700" fill={C.muted} letterSpacing="1.4">BEFORE</text>
+            <text x="100" y="22" fontFamily={fSans} fontSize="13.5" fontWeight="700" fill={C.text}>Static dispatch</text>
+            <text x="100" y="34" fontFamily={fSans} fontSize="9.5" fill={C.muted}>Distance-threshold rule · single fixed selection · no live state</text>
 
             {/* Map */}
-            <MapScene mode="traditional" />
+            <MapScene mode="static" />
 
             {/* Outcome strip */}
-            <g transform="translate(36, 380)">
-              <rect width="488" height="64" fill="#fff5f5" stroke={C.red} strokeWidth="0.8" rx="3" />
-              <text x="14" y="20" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.red} letterSpacing="0.5">EXPECTED OUTCOME</text>
-              <text x="14" y="50" fontFamily={fMono} fontSize="22" fontWeight="700" fill={C.text}>121 min</text>
-              <text x="120" y="42" fontFamily={fSans} fontSize="11" fill={C.text}>FMC → Device, via spoke ED transfer</text>
-              <text x="120" y="56" fontFamily={fSans} fontSize="10" fill={C.muted}>Probability ≤ 90 min: <tspan fontFamily={fMono} fontWeight="700" fill={C.red}>9%</tspan></text>
+            <g transform="translate(36, 360)">
+              <rect width="488" height="58" fill="#fff5f5" stroke={C.red} strokeWidth="0.8" rx="3" />
+              <text x="14" y="18" fontFamily={fSans} fontSize="9.5" fontWeight="700" fill={C.red} letterSpacing="0.5">EXPECTED OUTCOME</text>
+              <text x="14" y="44" fontFamily={fMono} fontSize="20" fontWeight="700" fill={C.text}>121 min</text>
+              <text x="124" y="38" fontFamily={fSans} fontSize="11" fill={C.text}>point estimate · single pathway evaluated</text>
+              <text x="124" y="51" fontFamily={fSans} fontSize="10" fill={C.muted}>no live cath-lab queue, no live DIDO, no live D2B</text>
             </g>
           </g>
 
-          {/* ─────────── CENTER · Transformation arrow ─────────── */}
-          <g transform="translate(540, 220)">
-            <text x="20" y="-2" fontFamily={fMono} fontSize="9.5" fontWeight="700" fill={C.gold} letterSpacing="1.5" textAnchor="middle">SOLVES WITH</text>
-            <line x1="0" y1="22" x2="40" y2="22" stroke={C.gold} strokeWidth="2.5" markerEnd="url(#goldArr)" />
-            <text x="20" y="40" fontFamily={fMono} fontSize="8.5" fill={C.muted} textAnchor="middle">NCDR + CenPop2020</text>
-            <text x="20" y="51" fontFamily={fMono} fontSize="8.5" fill={C.muted} textAnchor="middle">+ live CAD telemetry</text>
-          </g>
-
-          {/* ─────────── RIGHT PANEL · Network-aware ─────────── */}
+          {/* RIGHT panel — Network-aware dispatch (map only in row 1) */}
           <g transform="translate(560, 0)">
-            <rect x="0" y="20" width="520" height="440" fill={C.panel} stroke={C.teal} strokeWidth="1.4" rx="3" />
+            <rect x="0" y="0" width="540" height="430" fill={C.panel} stroke={C.teal} strokeWidth="1.4" rx="3" />
             {/* Title strip */}
-            <rect x="0" y="20" width="520" height="40" fill="#f0faf8" />
-            <text x="14" y="42" fontFamily={fMono} fontSize="10" fontWeight="700" fill={C.teal} letterSpacing="1.4">AFTER</text>
-            <text x="74" y="42" fontFamily={fSans} fontSize="13.5" fontWeight="700" fill={C.text}>Network-aware dispatch</text>
-            <text x="74" y="56" fontFamily={fSans} fontSize="9.5" fill={C.muted}>Cross-jurisdictional visibility · real-time NCDR-conditioned routing</text>
+            <rect x="0" y="0" width="540" height="40" fill="#f0faf8" />
+            <text x="14" y="22" fontFamily={fMono} fontSize="10" fontWeight="700" fill={C.teal} letterSpacing="1.4">AFTER</text>
+            <text x="74" y="22" fontFamily={fSans} fontSize="13.5" fontWeight="700" fill={C.text}>Network-aware dispatch</text>
+            <text x="74" y="34" fontFamily={fSans} fontSize="9.5" fill={C.muted}>Live computation across all candidate pathways · NCDR-conditioned</text>
 
-            {/* Map */}
+            {/* Map (uses the same MapScene component, network mode) */}
             <MapScene mode="network" />
 
+            {/* Live conditioning state, top-right inside map area
+                (process-time tags above are CONDITIONED on these inputs) */}
+            <g transform="translate(404, 64)">
+              <rect width="124" height="76" fill="#fffaef" stroke={C.gold} strokeWidth="0.8" rx="3" />
+              <text x="62" y="13" fontFamily={fMono} fontSize="8" fontWeight="700" fill={C.gold} letterSpacing="1.2" textAnchor="middle">CONDITIONING STATE</text>
+              <text x="7" y="27" fontFamily={fSans} fontSize="8.5" fill={C.text}>Kent · queue 0 · in-house</text>
+              <text x="7" y="39" fontFamily={fSans} fontSize="8.5" fill={C.text}>Kent · pre-activation ✓</text>
+              <text x="7" y="51" fontFamily={fSans} fontSize="8.5" fill={C.text}>Milford · ED 44% load</text>
+              <text x="7" y="63" fontFamily={fSans} fontSize="8.5" fill={C.text}>Milford · AM peak ×1.12</text>
+              <text x="7" y="73" fontFamily={fMono} fontSize="7.5" fill={C.muted}>updated &lt; 60 s ago</text>
+            </g>
+
             {/* Outcome strip */}
-            <g transform="translate(16, 380)">
-              <rect width="488" height="64" fill="#f0faf8" stroke={C.teal} strokeWidth="0.8" rx="3" />
-              <text x="14" y="20" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.teal} letterSpacing="0.5">EXPECTED OUTCOME</text>
-              <text x="14" y="50" fontFamily={fMono} fontSize="22" fontWeight="700" fill={C.text}>87 min</text>
-              <text x="120" y="42" fontFamily={fSans} fontSize="11" fill={C.text}>FMC → Device, direct PCI bypass</text>
-              <text x="120" y="56" fontFamily={fSans} fontSize="10" fill={C.muted}>Probability ≤ 90 min: <tspan fontFamily={fMono} fontWeight="700" fill={C.teal}>62%</tspan></text>
+            <g transform="translate(16, 360)">
+              <rect width="508" height="58" fill="#f0faf8" stroke={C.teal} strokeWidth="0.8" rx="3" />
+              <text x="14" y="18" fontFamily={fSans} fontSize="9.5" fontWeight="700" fill={C.teal} letterSpacing="0.5">SELECTED PATHWAY</text>
+              <text x="14" y="44" fontFamily={fMono} fontSize="20" fontWeight="700" fill={C.text}>87 min</text>
+              <text x="124" y="38" fontFamily={fSans} fontSize="11" fill={C.text}>P10–P90: 73 to 108 · prob ≤ 90 min: <tspan fontFamily={fMono} fontWeight="700" fill={C.teal}>62%</tspan></text>
+              <text x="124" y="51" fontFamily={fSans} fontSize="10" fill={C.muted}>fastest of 3 candidates evaluated against live network state</text>
               {/* Time-saved chip */}
-              <g transform="translate(380, 14)">
-                <rect width="96" height="40" fill={C.teal} rx="3" />
-                <text x="48" y="16" fontFamily={fMono} fontSize="9" fontWeight="700" fill="#fff" textAnchor="middle" letterSpacing="0.6">TIME SAVED</text>
-                <text x="48" y="34" fontFamily={fMono} fontSize="15" fontWeight="700" fill="#fff" textAnchor="middle">−34 min</text>
+              <g transform="translate(400, 12)">
+                <rect width="96" height="36" fill={C.teal} rx="3" />
+                <text x="48" y="14" fontFamily={fMono} fontSize="8.5" fontWeight="700" fill="#fff" textAnchor="middle" letterSpacing="0.6">SAVES</text>
+                <text x="48" y="30" fontFamily={fMono} fontSize="14" fontWeight="700" fill="#fff" textAnchor="middle">−34 min</text>
               </g>
             </g>
+          </g>
+
+          {/* ───── ROW 2: candidate-pathway evaluation table ───── */}
+          <g transform="translate(20, 460)">
+            {/* Section header */}
+            <text x="0" y="14" fontFamily={fMono} fontSize="10" fontWeight="700" fill={C.gold} letterSpacing="1.6">CANDIDATE PATHWAYS · EVALUATED LIVE BY THE NETWORK</text>
+            <text x="0" y="30" fontFamily={fSans} fontSize="11" fill={C.text}>
+              For this STEMI event, the routing engine composes NCDR-derived DIDO and D2B distributions with the current network state and ranks all reachable pathways by expected first-medical-contact-to-device time.
+            </text>
+
+            {/* Three candidate rows */}
+            <g transform="translate(0, 50)">
+              <CandidateRow y={0}   code="A" name="Direct → Kent PCI"        expected="87"  prob="62%" selected />
+              <CandidateRow y={56}  code="B" name="Via Milford ED → Kent PCI" expected="121" prob="9%" />
+              <CandidateRow y={112} code="C" name="Direct → Christiana PCI"   expected="142" prob="2%" />
+            </g>
+
+            {/* Footnote */}
+            <text x="0" y="234" fontFamily={fMono} fontSize="9" fill={C.muted} fontStyle="italic">
+              Static protocol selects pathway B (distance threshold). Network selects pathway A from live computation. Same patient, same network, different decision.
+            </text>
           </g>
         </svg>
       </div>
 
       <figcaption className="px-5 py-3 text-[12px] italic text-[#3a4055] leading-[1.65] border-t border-[#d4d6dc] bg-[#fafaf7]">
-        <span className="font-semibold not-italic text-[#1a1e2e]">Figure 1.</span> The solution.
-        Traditional dispatch (left) operates within agency silos. The dispatching system has no
-        visibility of advanced life support units across boundaries; static bypass protocols select
-        the destination hospital by geographic distance; the patient is routed to the spoke
-        emergency department and then transferred to the percutaneous coronary intervention hub.
-        Network-aware dispatch (right) treats agency boundaries as administrative only. All units
-        are cross-visible, the routing decision is computed against real-time NCDR-conditioned
-        predictions of door-in-door-out and door-to-balloon times, and the recommended pathway
-        bypasses the spoke. Modeled time saved per case in the Delaware pilot network is 34
-        minutes (121 min versus 87 min expected first-medical-contact-to-device). ED, emergency
-        department; FMC, first medical contact.
+        <span className="font-semibold not-italic text-[#1a1e2e]">Figure 1.</span> The network advantage
+        is live multi-path computation. The static protocol (left) applies a fixed distance-threshold
+        rule and routes the patient via the nearest spoke emergency department with no awareness of
+        cath-lab queue, time-of-day load, or pre-activation status. The network-aware engine (right) takes
+        the same patient and the same network and evaluates all three reachable pathways against live
+        NCDR-conditioned predictions of door-in-door-out at the spoke and door-to-balloon at each hub.
+        Each facility on the network map carries its current process-time tag, conditioned on the
+        live state shown in the upper-right callout: the spoke ED at Milford is tagged with the
+        time-of-day-adjusted DIDO P50 of 40 min, Kent PCI carries the queue-conditioned, pre-activation
+        D2B P50 of 48 min, and Christiana PCI carries a D2B P50 of 58 min. The routing engine composes
+        these tags across the candidate pathways listed below the maps and selects pathway A (direct to
+        Kent PCI), with an expected first-medical-contact-to-device of 87 min and a 62% probability of
+        meeting the 90-minute guideline. Pathway B (via Milford ED) is dominated under current state
+        because the transfer adds 34 minutes to the DIDO already incurred at the spoke. Pathway C is
+        dominated by transport distance. Same patient and same network, different decision: this is the
+        advantage. D2B, door-to-balloon; DIDO, door-in-door-out; ED, emergency department; FMC, first
+        medical contact; NCDR, National Cardiovascular Data Registry; PCI, percutaneous coronary
+        intervention.
       </figcaption>
     </figure>
   )
