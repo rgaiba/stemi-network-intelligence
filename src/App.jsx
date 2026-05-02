@@ -154,9 +154,6 @@ function AboutPage({ onBack }) {
           </p>
         </div>
 
-        {/* Central architecture figure */}
-        <ArchitectureFigure />
-
         <div className="space-y-8 text-[14.5px] leading-[1.7] text-[#252a3d]">
           {/* 1. Why This Is Important */}
           <Section2 num="1" title="Why this is important">
@@ -294,6 +291,9 @@ function AboutPage({ onBack }) {
               Problem formulation of Daskin [4]. Multiperiod redeployment for dynamic operations
               follows Rajagopalan and colleagues [13].
             </p>
+
+            {/* Central methods figure (placed at the close of Methods, as per JACC convention) */}
+            <ArchitectureFigure />
           </Section2>
 
           {/* 5. Innovation and Anticipated Impact */}
@@ -419,8 +419,8 @@ function ArchitectureFigure() {
     },
     {
       title: 'Live Computer-Aided Dispatch',
-      lines: ['Unit availability and location', 'jurisdictional demand surface'],
-      footer: 'Real-time telemetry',
+      lines: ['Unit availability and position', 'via Google Maps Platform API'],
+      footer: 'Cross-jurisdictional demand surface',
     },
     {
       title: 'Operations-Research Literature',
@@ -438,6 +438,21 @@ function ArchitectureFigure() {
         <span className="text-[12px] text-[#3a4055] italic">
           Three-tier architecture of STEMI Network Intelligence
         </span>
+      </div>
+
+      {/* Objective banner — sits above all three panels */}
+      <div
+        className="border-b border-[#d4d6dc] px-5 py-3 bg-[#fdfaf2]"
+        style={{ borderLeftWidth: '4px', borderLeftStyle: 'solid', borderLeftColor: '#b8860b' }}
+      >
+        <div className="flex items-baseline gap-3 flex-wrap">
+          <span className="text-[10px] uppercase tracking-[0.22em] text-[#b8860b] font-bold" style={{ fontFamily: fMono }}>
+            Objective
+          </span>
+          <span className="text-[12.5px] text-[#1a1e2e] leading-snug">
+            Minimise the expected first-medical-contact-to-device time across the STEMI care pathway and surface the probability of meeting the 90-minute guideline.
+          </span>
+        </div>
       </div>
 
       <div className="p-3 sm:p-5 bg-white">
@@ -514,8 +529,8 @@ function ArchitectureFigure() {
                 </g>
               ))}
 
-              {/* Edge label */}
-              <text x="560" y="92" fontFamily={fSans} fontSize="9" fill={C.muted} textAnchor="middle" fontStyle="italic">edge weights = probability distributions</text>
+              {/* Edge caption (placed below node subtitles to avoid overlap with curve glyphs) */}
+              <text x="560" y="184" fontFamily={fSans} fontSize="9" fill={C.muted} textAnchor="middle" fontStyle="italic">Edge weights are probability distributions, not point estimates.</text>
             </g>
 
             {/* Monte Carlo callout */}
@@ -532,9 +547,9 @@ function ArchitectureFigure() {
                 <path d="M 0 30 Q 35 42 70 36" />
                 <path d="M 0 30 Q 35 48 70 50" />
               </g>
-              {/* Stopwatch label area */}
-              <text x="100" y="56" fontFamily={fMono} fontSize="11" fontWeight="700" fill={C.navy}>1,000</text>
-              <text x="100" y="68" fontFamily={fSans} fontSize="9" fill={C.text}>draws per pathway</text>
+              {/* Numbers (positioned to clear the fan glyph at x≤90) */}
+              <text x="112" y="54" fontFamily={fMono} fontSize="11" fontWeight="700" fill={C.navy}>1,000</text>
+              <text x="112" y="66" fontFamily={fSans} fontSize="9" fill={C.text}>draws per pathway</text>
               <text x="14" y="98" fontFamily={fMono} fontSize="10" fill={C.text}>≤ 500 ms</text>
               <text x="14" y="110" fontFamily={fSans} fontSize="9" fill={C.muted}>compute per case</text>
             </g>
@@ -560,15 +575,8 @@ function ArchitectureFigure() {
               </g>
             </g>
 
-            {/* Objective line */}
-            <g transform="translate(362, 340)">
-              <rect width="393" height="50" fill="#fff" stroke={C.gold} strokeWidth="0.8" rx="3" />
-              <text x="14" y="22" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.gold}>OBJECTIVE</text>
-              <text x="14" y="40" fontFamily={fSans} fontSize="11" fill={C.text}>Minimise expected First-Medical-Contact-to-Device time</text>
-            </g>
-
-            {/* Prediction sub-models row */}
-            <g transform="translate(362, 408)">
+            {/* Prediction sub-models row (shifted up after Objective banner moved to figure header) */}
+            <g transform="translate(362, 348)">
               <text x="0" y="14" fontFamily={fSans} fontSize="10" fontWeight="600" fill={C.navy}>Prediction sub-models</text>
               <g transform="translate(0, 24)">
                 <rect width="190" height="74" fill={C.bg} stroke={C.navy} strokeWidth="0.6" rx="3" />
@@ -618,8 +626,8 @@ function ArchitectureFigure() {
               <rect x="0" y="0" width="4" height="92" fill={C.red} />
               <text x="14" y="20" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.red}>MORTALITY ELASTICITY</text>
               <text x="14" y="48" fontFamily={fMono} fontSize="22" fontWeight="700" fill={C.text}>+3%</text>
-              <text x="64" y="44" fontFamily={fSans} fontSize="10" fill={C.text}>relative mortality per minute</text>
-              <text x="64" y="58" fontFamily={fSans} fontSize="10" fill={C.text}>of additional treatment delay</text>
+              <text x="80" y="42" fontFamily={fSans} fontSize="10" fill={C.text}>relative mortality per minute</text>
+              <text x="80" y="56" fontFamily={fSans} fontSize="10" fill={C.text}>of additional treatment delay</text>
               <text x="14" y="80" fontFamily={fMono} fontSize="9" fill={C.muted}>De Luca 2004 · Stopyra 2023</text>
             </g>
 
@@ -628,14 +636,14 @@ function ArchitectureFigure() {
               <rect width="288" height="124" fill={C.bg} stroke={C.red} strokeWidth="0.8" rx="3" />
               <rect x="0" y="0" width="4" height="124" fill={C.red} />
               <text x="14" y="20" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.red}>RURAL EXCESS MORTALITY</text>
-              <text x="14" y="50" fontFamily={fMono} fontSize="24" fontWeight="700" fill={C.text}>17.4%</text>
-              <text x="80" y="42" fontFamily={fSans} fontSize="10" fill={C.text}>excess annual mortality</text>
-              <text x="80" y="56" fontFamily={fSans} fontSize="10" fill={C.text}>in rural STEMI patients</text>
+              <text x="14" y="50" fontFamily={fMono} fontSize="22" fontWeight="700" fill={C.text}>17.4%</text>
+              <text x="100" y="42" fontFamily={fSans} fontSize="10" fill={C.text}>excess annual mortality</text>
+              <text x="100" y="56" fontFamily={fSans} fontSize="10" fill={C.text}>in rural STEMI patients</text>
 
               {/* Two mini network sketches */}
-              <g transform="translate(14, 70)">
+              <g transform="translate(14, 74)">
                 <text x="0" y="10" fontFamily={fSans} fontSize="9" fill={C.muted}>Traditional</text>
-                <g transform="translate(0, 16)" stroke={C.muted} strokeWidth="0.8" fill={C.muted}>
+                <g transform="translate(0, 18)" stroke={C.muted} strokeWidth="0.8" fill={C.muted}>
                   <circle cx="6"  cy="6"  r="2.5" /><circle cx="32" cy="20" r="2.5" />
                   <circle cx="60" cy="6"  r="2.5" /><circle cx="48" cy="32" r="2.5" />
                   <circle cx="14" cy="32" r="2.5" />
@@ -643,9 +651,9 @@ function ArchitectureFigure() {
                   <line x1="14" y1="32" x2="48" y2="32" />
                 </g>
               </g>
-              <g transform="translate(160, 70)">
+              <g transform="translate(160, 74)">
                 <text x="0" y="10" fontFamily={fSans} fontSize="9" fill={C.muted}>Network-aware</text>
-                <g transform="translate(0, 16)" stroke={C.teal} strokeWidth="0.9" fill={C.teal}>
+                <g transform="translate(0, 18)" stroke={C.teal} strokeWidth="0.9" fill={C.teal}>
                   <circle cx="6"  cy="6"  r="2.5" /><circle cx="32" cy="20" r="2.5" />
                   <circle cx="60" cy="6"  r="2.5" /><circle cx="48" cy="32" r="2.5" />
                   <circle cx="14" cy="32" r="2.5" /><circle cx="60" cy="32" r="2.5" />
