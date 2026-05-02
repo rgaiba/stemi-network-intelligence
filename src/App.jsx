@@ -154,6 +154,9 @@ function AboutPage({ onBack }) {
           </p>
         </div>
 
+        {/* Central architecture figure */}
+        <ArchitectureFigure />
+
         <div className="space-y-8 text-[14.5px] leading-[1.7] text-[#252a3d]">
           {/* 1. Why This Is Important */}
           <Section2 num="1" title="Why this is important">
@@ -365,6 +368,314 @@ function AboutPage({ onBack }) {
         </div>
       </div>
     </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// Central architecture figure for the About page (JACC-style)
+// ─────────────────────────────────────────────────────────────
+function ArchitectureFigure() {
+  // Color palette tuned for an academic figure
+  const C = {
+    navy: '#1a3759',
+    teal: '#1f7d75',
+    gold: '#b8860b',
+    red:  '#c62828',
+    text: '#1a1e2e',
+    muted:'#6a7287',
+    line: '#4a5270',
+    sep:  '#e5e7eb',
+    bg:   '#f5f6f9',
+    card: '#ffffff',
+  }
+  const fSans = 'Inter, ui-sans-serif, system-ui, sans-serif'
+  const fMono = 'JetBrains Mono, ui-monospace, SFMono-Regular, monospace'
+
+  // Helpers for the gauge in Panel C
+  const cx = 935, cy = 178, r = 60
+  const polar = (deg) => {
+    const a = (deg * Math.PI) / 180
+    return [cx + r * Math.cos(a), cy - r * Math.sin(a)]
+  }
+  // gauge sweeps from 180° (left) over top to 0° (right) = 180°
+  // 40% → 108°,  70% → 54°,  85% (needle) → 27°
+  const [pStart, p40, p70, pEnd] = [polar(180), polar(108), polar(54), polar(0)]
+  const [needleX, needleY] = polar(27)
+  const arc = (a, b, color) => (
+    <path d={`M ${a[0]} ${a[1]} A ${r} ${r} 0 0 1 ${b[0]} ${b[1]}`} stroke={color} strokeWidth="11" fill="none" strokeLinecap="butt" />
+  )
+
+  // Source-card spec for Panel A
+  const dataCards = [
+    {
+      title: 'NCDR ACTION + CathPCI Registry',
+      lines: ['Facility-level DIDO and D2B', 'distributions by pre-activation'],
+      footer: '≈ 700 contributing hospitals',
+    },
+    {
+      title: 'U.S. Census CenPop2020',
+      lines: ['Mean block-group centroids', 'population-weighted access'],
+      footer: '702 block groups · FIPS 10',
+    },
+    {
+      title: 'Live Computer-Aided Dispatch',
+      lines: ['Unit availability and location', 'jurisdictional demand surface'],
+      footer: 'Real-time telemetry',
+    },
+    {
+      title: 'Operations-Research Literature',
+      lines: ['MEXCLP, hypercube queuing,', 'stochastic shortest-path methods'],
+      footer: 'Daskin 1983 · Church 1974',
+    },
+  ]
+
+  return (
+    <figure className="my-8 bg-white border border-[#d4d6dc] rounded shadow-sm overflow-hidden">
+      <div className="border-b border-[#d4d6dc] px-5 py-2.5 flex items-baseline justify-between gap-4">
+        <span className="text-[11px] uppercase tracking-[0.18em] text-[#b8860b] font-semibold" style={{ fontFamily: fMono }}>
+          Figure 1
+        </span>
+        <span className="text-[12px] text-[#3a4055] italic">
+          Three-tier architecture of STEMI Network Intelligence
+        </span>
+      </div>
+
+      <div className="p-3 sm:p-5 bg-white">
+        <svg viewBox="0 0 1100 540" className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill={C.line} />
+            </marker>
+            <marker id="arrTeal" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill={C.teal} />
+            </marker>
+          </defs>
+
+          {/* Panel separators */}
+          <line x1="345" y1="20" x2="345" y2="510" stroke={C.sep} strokeWidth="1" />
+          <line x1="775" y1="20" x2="775" y2="510" stroke={C.sep} strokeWidth="1" />
+
+          {/* Cross-panel arrows */}
+          <line x1="338" y1="270" x2="352" y2="270" stroke={C.line} strokeWidth="1.4" markerEnd="url(#arr)" />
+          <line x1="768" y1="270" x2="782" y2="270" stroke={C.line} strokeWidth="1.4" markerEnd="url(#arr)" />
+
+          {/* ─────────── PANEL A · Data Substrate ─────────── */}
+          <g>
+            <text x="22" y="24" fontFamily={fSans} fontSize="15" fontWeight="700" fill={C.text}>A</text>
+            <text x="40" y="24" fontFamily={fSans} fontSize="13" fontWeight="600" fill={C.navy}>Data Substrate</text>
+            <text x="22" y="42" fontFamily={fSans} fontSize="10" fill={C.muted}>National registries and population baseline</text>
+
+            {dataCards.map((d, i) => {
+              const y = 64 + i * 110
+              return (
+                <g key={i} transform={`translate(22, ${y})`}>
+                  <rect width="305" height="96" fill={C.bg} stroke={C.navy} strokeWidth="0.8" rx="3" />
+                  <rect x="0" y="0" width="4" height="96" fill={C.navy} />
+                  <text x="14" y="22" fontFamily={fSans} fontSize="11.5" fontWeight="700" fill={C.navy}>{d.title}</text>
+                  {d.lines.map((ln, j) => (
+                    <text key={j} x="14" y={42 + j * 14} fontFamily={fSans} fontSize="10" fill={C.text}>{ln}</text>
+                  ))}
+                  <text x="14" y="84" fontFamily={fMono} fontSize="9" fill={C.muted}>{d.footer}</text>
+                </g>
+              )
+            })}
+          </g>
+
+          {/* ─────────── PANEL B · Computational Engine ─────────── */}
+          <g>
+            <text x="362" y="24" fontFamily={fSans} fontSize="15" fontWeight="700" fill={C.text}>B</text>
+            <text x="380" y="24" fontFamily={fSans} fontSize="13" fontWeight="600" fill={C.navy}>Computational Engine</text>
+            <text x="362" y="42" fontFamily={fSans} fontSize="10" fill={C.muted}>Stochastic shortest-path simulator</text>
+
+            {/* Directed weighted graph */}
+            <g>
+              <text x="362" y="68" fontFamily={fSans} fontSize="10.5" fontWeight="600" fill={C.text}>STEMI care pathway as a directed weighted graph</text>
+
+              {/* Nodes */}
+              {[
+                { x: 410, label: 'Origin',  sub: 'Scene' },
+                { x: 510, label: 'EMS',     sub: 'Dispatch' },
+                { x: 610, label: 'Spoke ED', sub: 'DIDO' },
+                { x: 710, label: 'PCI Hub', sub: 'D2B' },
+              ].map((n, i) => (
+                <g key={i}>
+                  <circle cx={n.x} cy="120" r="22" fill={i === 0 ? C.gold : C.navy} />
+                  <text x={n.x} y="124" fontFamily={fSans} fontSize="10" fontWeight="700" fill="#fff" textAnchor="middle">{n.label}</text>
+                  <text x={n.x} y="158" fontFamily={fSans} fontSize="9" fill={C.muted} textAnchor="middle">{n.sub}</text>
+                </g>
+              ))}
+
+              {/* Edges (with arrows) */}
+              {[[432, 488], [532, 588], [632, 688]].map(([a, b], i) => (
+                <g key={i}>
+                  <line x1={a} y1="120" x2={b} y2="120" stroke={C.line} strokeWidth="1.4" markerEnd="url(#arr)" />
+                  {/* Distribution glyph above each edge */}
+                  <path d={`M ${a + 6} 96 Q ${(a + b) / 2} 78 ${b - 6} 96`} fill="none" stroke={C.teal} strokeWidth="1.2" />
+                </g>
+              ))}
+
+              {/* Edge label */}
+              <text x="560" y="92" fontFamily={fSans} fontSize="9" fill={C.muted} textAnchor="middle" fontStyle="italic">edge weights = probability distributions</text>
+            </g>
+
+            {/* Monte Carlo callout */}
+            <g transform="translate(362, 200)">
+              <rect width="180" height="118" fill={C.bg} stroke={C.navy} strokeWidth="0.8" rx="3" />
+              <text x="14" y="20" fontFamily={fSans} fontSize="11" fontWeight="700" fill={C.navy}>Monte Carlo simulator</text>
+              {/* Fan visualization */}
+              <g transform="translate(20, 36)" stroke={C.teal} strokeWidth="0.7" fill="none" opacity="0.7">
+                <path d="M 0 30 Q 35 5 70 30" />
+                <path d="M 0 30 Q 35 12 70 38" />
+                <path d="M 0 30 Q 35 20 70 26" />
+                <path d="M 0 30 Q 35 25 70 44" />
+                <path d="M 0 30 Q 35 35 70 22" />
+                <path d="M 0 30 Q 35 42 70 36" />
+                <path d="M 0 30 Q 35 48 70 50" />
+              </g>
+              {/* Stopwatch label area */}
+              <text x="100" y="56" fontFamily={fMono} fontSize="11" fontWeight="700" fill={C.navy}>1,000</text>
+              <text x="100" y="68" fontFamily={fSans} fontSize="9" fill={C.text}>draws per pathway</text>
+              <text x="14" y="98" fontFamily={fMono} fontSize="10" fill={C.text}>≤ 500 ms</text>
+              <text x="14" y="110" fontFamily={fSans} fontSize="9" fill={C.muted}>compute per case</text>
+            </g>
+
+            {/* Uncertainty quantification */}
+            <g transform="translate(560, 200)">
+              <rect width="195" height="118" fill={C.bg} stroke={C.navy} strokeWidth="0.8" rx="3" />
+              <text x="14" y="20" fontFamily={fSans} fontSize="11" fontWeight="700" fill={C.navy}>Uncertainty quantified</text>
+
+              {/* Mini distribution curve with P10/P50/P90 markers */}
+              <g transform="translate(14, 36)">
+                {/* Bell curve */}
+                <path d="M 0 60 C 25 60 35 10 80 10 C 125 10 135 60 165 60 Z" fill={C.teal} fillOpacity="0.18" stroke={C.teal} strokeWidth="1" />
+                {/* P10 line */}
+                <line x1="40" y1="14" x2="40" y2="60" stroke={C.muted} strokeWidth="0.8" strokeDasharray="2 2" />
+                <text x="40" y="74" fontFamily={fMono} fontSize="8.5" fill={C.muted} textAnchor="middle">P10</text>
+                {/* P50 */}
+                <line x1="80" y1="6" x2="80" y2="60" stroke={C.navy} strokeWidth="1" />
+                <text x="80" y="74" fontFamily={fMono} fontSize="8.5" fontWeight="700" fill={C.navy} textAnchor="middle">P50</text>
+                {/* P90 */}
+                <line x1="120" y1="14" x2="120" y2="60" stroke={C.muted} strokeWidth="0.8" strokeDasharray="2 2" />
+                <text x="120" y="74" fontFamily={fMono} fontSize="8.5" fill={C.muted} textAnchor="middle">P90</text>
+              </g>
+            </g>
+
+            {/* Objective line */}
+            <g transform="translate(362, 340)">
+              <rect width="393" height="50" fill="#fff" stroke={C.gold} strokeWidth="0.8" rx="3" />
+              <text x="14" y="22" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.gold}>OBJECTIVE</text>
+              <text x="14" y="40" fontFamily={fSans} fontSize="11" fill={C.text}>Minimise expected First-Medical-Contact-to-Device time</text>
+            </g>
+
+            {/* Prediction sub-models row */}
+            <g transform="translate(362, 408)">
+              <text x="0" y="14" fontFamily={fSans} fontSize="10" fontWeight="600" fill={C.navy}>Prediction sub-models</text>
+              <g transform="translate(0, 24)">
+                <rect width="190" height="74" fill={C.bg} stroke={C.navy} strokeWidth="0.6" rx="3" />
+                <text x="12" y="18" fontFamily={fSans} fontSize="10.5" fontWeight="700" fill={C.navy}>DIDO · Spoke ED</text>
+                <text x="12" y="34" fontFamily={fSans} fontSize="9" fill={C.text}>NCDR distribution + ED census +</text>
+                <text x="12" y="46" fontFamily={fSans} fontSize="9" fill={C.text}>time-of-day load multiplier</text>
+                <text x="12" y="64" fontFamily={fMono} fontSize="9" fill={C.muted}>Reported as P10 · P50 · P90</text>
+              </g>
+              <g transform="translate(203, 24)">
+                <rect width="190" height="74" fill={C.bg} stroke={C.navy} strokeWidth="0.6" rx="3" />
+                <text x="12" y="18" fontFamily={fSans} fontSize="10.5" fontWeight="700" fill={C.navy}>D2B · PCI Hub</text>
+                <text x="12" y="34" fontFamily={fSans} fontSize="9" fill={C.text}>CathPCI distribution + queue +</text>
+                <text x="12" y="46" fontFamily={fSans} fontSize="9" fill={C.text}>pre-activation status</text>
+                <text x="12" y="64" fontFamily={fMono} fontSize="9" fill={C.muted}>Reported as P10 · P50 · P90</text>
+              </g>
+            </g>
+          </g>
+
+          {/* ─────────── PANEL C · Clinical Output ─────────── */}
+          <g>
+            <text x="792" y="24" fontFamily={fSans} fontSize="15" fontWeight="700" fill={C.text}>C</text>
+            <text x="810" y="24" fontFamily={fSans} fontSize="13" fontWeight="600" fill={C.navy}>Clinical Output</text>
+            <text x="792" y="42" fontFamily={fSans} fontSize="10" fill={C.muted}>Point-of-care and population-level</text>
+
+            {/* Gauge */}
+            <g>
+              <text x="935" y="74" fontFamily={fSans} fontSize="10.5" fontWeight="600" fill={C.text} textAnchor="middle">Probability of meeting</text>
+              <text x="935" y="88" fontFamily={fSans} fontSize="10.5" fontWeight="600" fill={C.text} textAnchor="middle">90-min FMC→Device guideline</text>
+              {/* gauge arcs */}
+              {arc(pStart, p40, '#c62828')}
+              {arc(p40, p70, '#d99a3a')}
+              {arc(p70, pEnd, '#1f7d75')}
+              {/* needle */}
+              <line x1={cx} y1={cy} x2={needleX} y2={needleY} stroke={C.text} strokeWidth="2" strokeLinecap="round" />
+              <circle cx={cx} cy={cy} r="4" fill={C.text} />
+              {/* tick labels */}
+              <text x={pStart[0] - 4} y={pStart[1] + 14} fontFamily={fMono} fontSize="9" fill={C.muted} textAnchor="end">0%</text>
+              <text x={pEnd[0] + 4} y={pEnd[1] + 14} fontFamily={fMono} fontSize="9" fill={C.muted}>100%</text>
+              {/* readout */}
+              <text x={cx} y={cy + 26} fontFamily={fMono} fontSize="22" fontWeight="700" fill={C.navy} textAnchor="middle">85%</text>
+              <text x={cx} y={cy + 44} fontFamily={fSans} fontSize="9" fill={C.muted} textAnchor="middle" fontStyle="italic">case-level, NCDR-conditioned</text>
+            </g>
+
+            {/* Mortality elasticity */}
+            <g transform="translate(792, 270)">
+              <rect width="288" height="92" fill={C.bg} stroke={C.red} strokeWidth="0.8" rx="3" />
+              <rect x="0" y="0" width="4" height="92" fill={C.red} />
+              <text x="14" y="20" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.red}>MORTALITY ELASTICITY</text>
+              <text x="14" y="48" fontFamily={fMono} fontSize="22" fontWeight="700" fill={C.text}>+3%</text>
+              <text x="64" y="44" fontFamily={fSans} fontSize="10" fill={C.text}>relative mortality per minute</text>
+              <text x="64" y="58" fontFamily={fSans} fontSize="10" fill={C.text}>of additional treatment delay</text>
+              <text x="14" y="80" fontFamily={fMono} fontSize="9" fill={C.muted}>De Luca 2004 · Stopyra 2023</text>
+            </g>
+
+            {/* Rural-urban disparity */}
+            <g transform="translate(792, 374)">
+              <rect width="288" height="124" fill={C.bg} stroke={C.red} strokeWidth="0.8" rx="3" />
+              <rect x="0" y="0" width="4" height="124" fill={C.red} />
+              <text x="14" y="20" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.red}>RURAL EXCESS MORTALITY</text>
+              <text x="14" y="50" fontFamily={fMono} fontSize="24" fontWeight="700" fill={C.text}>17.4%</text>
+              <text x="80" y="42" fontFamily={fSans} fontSize="10" fill={C.text}>excess annual mortality</text>
+              <text x="80" y="56" fontFamily={fSans} fontSize="10" fill={C.text}>in rural STEMI patients</text>
+
+              {/* Two mini network sketches */}
+              <g transform="translate(14, 70)">
+                <text x="0" y="10" fontFamily={fSans} fontSize="9" fill={C.muted}>Traditional</text>
+                <g transform="translate(0, 16)" stroke={C.muted} strokeWidth="0.8" fill={C.muted}>
+                  <circle cx="6"  cy="6"  r="2.5" /><circle cx="32" cy="20" r="2.5" />
+                  <circle cx="60" cy="6"  r="2.5" /><circle cx="48" cy="32" r="2.5" />
+                  <circle cx="14" cy="32" r="2.5" />
+                  <line x1="6" y1="6" x2="32" y2="20" /><line x1="32" y1="20" x2="60" y2="6" />
+                  <line x1="14" y1="32" x2="48" y2="32" />
+                </g>
+              </g>
+              <g transform="translate(160, 70)">
+                <text x="0" y="10" fontFamily={fSans} fontSize="9" fill={C.muted}>Network-aware</text>
+                <g transform="translate(0, 16)" stroke={C.teal} strokeWidth="0.9" fill={C.teal}>
+                  <circle cx="6"  cy="6"  r="2.5" /><circle cx="32" cy="20" r="2.5" />
+                  <circle cx="60" cy="6"  r="2.5" /><circle cx="48" cy="32" r="2.5" />
+                  <circle cx="14" cy="32" r="2.5" /><circle cx="60" cy="32" r="2.5" />
+                  <line x1="6" y1="6" x2="32" y2="20" /><line x1="32" y1="20" x2="60" y2="6" />
+                  <line x1="32" y1="20" x2="14" y2="32" /><line x1="32" y1="20" x2="48" y2="32" />
+                  <line x1="48" y1="32" x2="60" y2="32" /><line x1="60" y1="6" x2="60" y2="32" />
+                </g>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </div>
+
+      <figcaption className="px-5 py-3 text-[12px] italic text-[#3a4055] leading-[1.65] border-t border-[#d4d6dc] bg-[#fafaf7]">
+        <span className="font-semibold not-italic text-[#1a1e2e]">Figure 1.</span> Three-tier
+        architecture of STEMI Network Intelligence. Tier A ingests facility-level distributions
+        from the NCDR ACTION and CathPCI Registries, U.S. Census Bureau CenPop2020 mean
+        block-group centroids, real-time computer-aided dispatch telemetry, and the
+        operations-research literature on ambulance location. Tier B formalises the STEMI care
+        pathway as a directed weighted graph in which edge weights are probability distributions,
+        not point estimates; the stochastic shortest path is computed by Monte Carlo simulation
+        with 1,000 draws per pathway, returning percentile outputs in under 500 ms. Tier C
+        surfaces the probability of meeting the 90-minute first-medical-contact-to-device
+        guideline at the point of care and quantifies the population-level mortality benefit.
+        CAD, computer-aided dispatch; CathPCI, Catheterisation Percutaneous Coronary Intervention
+        Registry; D2B, door-to-balloon; DIDO, door-in-door-out; FMC, first medical contact;
+        MEXCLP, Maximum Expected Coverage Location Problem; NCDR, National Cardiovascular Data
+        Registry; STEMI, ST-elevation myocardial infarction.
+      </figcaption>
+    </figure>
   )
 }
 
