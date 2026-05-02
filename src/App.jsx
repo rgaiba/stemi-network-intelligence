@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import {
   Activity, MapPin, Zap, Users, BarChart2, Radio, Heart, Truck, Building2,
   Plane, AlertTriangle, CheckCircle2, TrendingDown, TrendingUp, DollarSign,
-  Microscope, Stethoscope, Clock, Send, ChevronRight,
+  Microscope, Stethoscope, Clock, Send, ChevronRight, Info, X,
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -10,7 +10,7 @@ import {
 } from 'recharts'
 import {
   NETWORK, ACTIVE_EVENT, COVERAGE_DATA, NCDR_BENCHMARKS,
-  ROLE_DASHBOARDS, TREND_DATA, LAYERS,
+  ROLE_DASHBOARDS, TREND_DATA, LAYERS, CENSUS_ACCESS,
 } from './data.js'
 
 // ─────────────────────────────────────────────────────────────
@@ -69,7 +69,7 @@ const layerIcon = (id, props = {}) => {
 // ─────────────────────────────────────────────────────────────
 // Header
 // ─────────────────────────────────────────────────────────────
-function Header() {
+function Header({ onAbout }) {
   const [now, setNow] = useState(new Date())
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000)
@@ -88,22 +88,183 @@ function Header() {
               STEMI NETWORK INTELLIGENCE
             </div>
             <div className="text-[11px] text-slate-400">
-              Powered by NCDR ACTION + CathPCI Registry · Bayhealth Pilot · v1.0
+              Powered by NCDR ACTION + CathPCI Registry · Pilot Network · v1.0
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-5 text-xs text-slate-300">
+        <div className="flex items-center gap-3 text-xs text-slate-300">
           <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-[#172033] border border-[#334155]">
             <span className="w-2 h-2 rounded-full bg-[#22c55e] animate-pulseDot inline-block" />
             <span>Live: Delaware Network</span>
           </div>
-          <div className="metric-num">
+          <button
+            onClick={onAbout}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#172033] border border-[#334155] text-slate-300 hover:bg-[#243248] hover:text-slate-100 hover:border-[#14b8a6]/60 transition"
+            title="About this dashboard"
+          >
+            <Info size={13} />
+            <span>About</span>
+          </button>
+          <div className="metric-num pl-2">
             <span className="text-slate-100 font-semibold">{time}</span>
             <span className="ml-2 text-slate-400">{date}</span>
           </div>
         </div>
       </div>
     </header>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// About modal — JACC-style methodology and references
+// ─────────────────────────────────────────────────────────────
+function AboutModal({ onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4 sm:p-8"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#0f172a] border border-[#334155] rounded-md max-w-3xl w-full my-4 shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-[#334155] px-6 py-3 sticky top-0 bg-[#0f172a] z-10">
+          <div className="flex items-center gap-2">
+            <Info size={16} className="text-[#14b8a6]" />
+            <span className="font-semibold text-slate-100">About this dashboard</span>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-100 p-1 rounded hover:bg-[#1e293b]">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 text-sm text-slate-200 leading-relaxed space-y-5">
+          <Section title="Overview">
+            <p>
+              The platform supports prehospital triage and system planning for ST-elevation myocardial
+              infarction (STEMI). The dashboard surfaces a single decision substrate across operations,
+              quality improvement, and finance.
+            </p>
+          </Section>
+
+          <Section title="NCDR-based prediction model">
+            <p>
+              Door-in-door-out (DIDO) and door-to-balloon (D2B) time distributions are derived from the
+              NCDR ACTION Registry and the CathPCI Registry [1,2]. Predictions are conditioned on facility
+              identity, time-of-day load, day-of-week, ED census, cath-lab queue depth, on-call team posture,
+              and pre-activation status [3,4]. Outputs are reported as P10, P50, and P90 to make uncertainty
+              explicit at the point of care.
+            </p>
+          </Section>
+
+          <Section title="Real-time routing">
+            <p>
+              The routing engine is a stochastic shortest-path Monte Carlo simulator (1,000 draws). For each
+              candidate pathway from first medical contact (FMC) to device, the engine composes the relevant
+              ED and hub distributions across all interleaving legs. The reported endpoint is FMC-to-device
+              time, with the 90-minute guideline rendered on every time chart [5,6]. Probability of meeting
+              the guideline is the primary action metric for the field crew.
+            </p>
+          </Section>
+
+          <Section title="Clinical modeling">
+            <p>
+              Mortality benefit is anchored in published time-to-treatment elasticities for primary
+              percutaneous coronary intervention. Each 30-minute reduction in ischemic time is associated
+              with a measurable absolute mortality reduction at 1 year [7,8]. System-level lives-saved
+              estimates apply this elasticity to the modeled FMC-to-device shift across the eligible
+              STEMI cohort.
+            </p>
+          </Section>
+
+          <Section title="Coverage and financial modeling">
+            <p>
+              Population access is computed against U.S. Census Bureau CenPop2020 mean block-group
+              centroids for Delaware. Drive time uses haversine distance with a 1.35 detour factor at
+              45 mph average speed. The current six-center network is benchmarked against a
+              seven-center scenario that adds a mid-state PCI hub at Milford. Financial attribution
+              uses CMI-weighted DRG capture for incremental STEMI volumes and standard payback
+              methodology. Optimal EMS unit siting follows the maximum expected covering location
+              problem (MEXCLP) [9].
+            </p>
+          </Section>
+
+          <Section title="Data provenance">
+            <p>
+              Registry inputs: NCDR ACTION (DIDO), CathPCI (D2B). Geographic baseline: U.S. Census
+              CenPop2020, FIPS 10. Network topology: pilot Delaware STEMI network, six PCI-capable
+              centers (four in Delaware, two on the Eastern Shore of Maryland). All numbers carry
+              their derivation; no synthetic patient records are used.
+            </p>
+          </Section>
+
+          <Section title="References">
+            <ol className="list-decimal pl-5 space-y-1.5 text-[13px] text-slate-300">
+              <li>
+                Cannon CP, Brindis RG, Chaitman BR, et al. 2013 ACCF/AHA Key Data Elements and
+                Definitions for Measuring the Clinical Management and Outcomes of Patients With
+                Acute Coronary Syndromes. <em>J Am Coll Cardiol</em> 2013;61(9):992 to 1025.
+              </li>
+              <li>
+                Brindis RG, Fitzgerald S, Anderson HV, et al. The American College of Cardiology
+                National Cardiovascular Data Registry (ACC-NCDR): building a national clinical data
+                repository. <em>J Am Coll Cardiol</em> 2001;37(8):2240 to 2245.
+              </li>
+              <li>
+                Diercks DB, Kontos MC, Chen AY, et al. Utilization and impact of pre-hospital
+                electrocardiograms for patients with acute ST-segment elevation myocardial infarction:
+                data from NCDR ACTION Registry. <em>J Am Coll Cardiol</em> 2009;53(2):161 to 166.
+              </li>
+              <li>
+                Krumholz HM, Bradley EH, Nallamothu BK, et al. A campaign to improve the timeliness
+                of primary percutaneous coronary intervention: Door-to-Balloon: An Alliance for
+                Quality. <em>JACC Cardiovasc Interv</em> 2008;1(1):97 to 104.
+              </li>
+              <li>
+                O'Gara PT, Kushner FG, Ascheim DD, et al. 2013 ACCF/AHA Guideline for the Management
+                of ST-Elevation Myocardial Infarction. <em>J Am Coll Cardiol</em> 2013;61(4):e78 to e140.
+              </li>
+              <li>
+                Jollis JG, Granger CB, Henry TD, et al. Systems of care for ST-segment-elevation
+                myocardial infarction: a report from the American Heart Association's Mission:
+                Lifeline. <em>Circ Cardiovasc Qual Outcomes</em> 2012;5(4):423 to 428.
+              </li>
+              <li>
+                De Luca G, Suryapranata H, Ottervanger JP, Antman EM. Time delay to treatment and
+                mortality in primary angioplasty for acute myocardial infarction: every minute of
+                delay counts. <em>Circulation</em> 2004;109(10):1223 to 1225.
+              </li>
+              <li>
+                Nallamothu BK, Bates ER, Herrin J, et al. Times to treatment in transfer patients
+                undergoing primary percutaneous coronary intervention in the United States.
+                <em> Circulation</em> 2005;111(6):761 to 767.
+              </li>
+              <li>
+                Daskin MS. A maximum expected covering location model: formulation, properties and
+                heuristic solution. <em>Transp Sci</em> 1983;17(1):48 to 70.
+              </li>
+            </ol>
+          </Section>
+
+          <div className="text-[11px] text-slate-500 border-t border-[#334155] pt-3">
+            This dashboard is a research-grade decision support prototype. It is not a regulated
+            medical device. Clinical and financial figures are estimates and require local validation
+            before operational use.
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Section({ title, children }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wider text-[#14b8a6] font-semibold mb-1.5">
+        {title}
+      </div>
+      {children}
+    </div>
   )
 }
 
@@ -230,7 +391,7 @@ function LiveEventLayer() {
           }
           accent="green"
         >
-          <div className="text-lg font-semibold text-slate-100">Direct → Bayhealth Kent PCI</div>
+          <div className="text-lg font-semibold text-slate-100">Direct → Kent Regional PCI</div>
           <div className="mt-3 flex items-end gap-3">
             <div>
               <div className="text-[10px] uppercase tracking-wider text-slate-400">Expected FMC→Device</div>
@@ -361,7 +522,7 @@ function PredictionModelsLayer() {
     <div className="layer-fade grid grid-cols-12 gap-4">
       <div className="col-span-12 lg:col-span-6">
         <ModelCard
-          title="Model M1 · DIDO Prediction"
+          title="DIDO Prediction · Spoke ER"
           subtitle={milford.name}
           color="#f59e0b"
           inputs={[
@@ -386,7 +547,7 @@ function PredictionModelsLayer() {
 
       <div className="col-span-12 lg:col-span-6">
         <ModelCard
-          title="Model M2 · D2B Prediction"
+          title="D2B Prediction · PCI Hub"
           subtitle={kent.name}
           color="#14b8a6"
           inputs={[
@@ -409,7 +570,7 @@ function PredictionModelsLayer() {
       </div>
 
       <div className="col-span-12">
-        <Panel title="Model M3 · FMC-to-Device Simulation (1,000 Monte Carlo draws)" accent="teal">
+        <Panel title="FMC-to-Device Simulation · 1,000 Monte Carlo draws" accent="teal">
           <div className="grid grid-cols-12 gap-4 items-center">
             <div className="col-span-12 lg:col-span-7">
               <DistroChart
@@ -518,14 +679,33 @@ function DistroChart({ data, fill, anchor, unit, refLine, height = 160 }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// LAYER 3 — Coverage Optimizer
+// LAYER 3 — Coverage
 // ─────────────────────────────────────────────────────────────
 function CoverageOptimizerLayer() {
-  const cur = COVERAGE_DATA.currentState
-  const opt = COVERAGE_DATA.optimizedState
+  const ca = CENSUS_ACCESS
+  const cur = ca.current
+  const sc = ca.withMilford
 
-  // Build investment return chart: month 0..36
-  // Cumulative net = (revenueMonthly - opexMonthly) * month - capital
+  // Cumulative-access curve: % of state population reachable within X minutes
+  const accessCurve = [
+    { mins:  8, current: cur.pctWithin8min,  withMilford: sc.pctWithin8min },
+    { mins: 15, current: cur.pctWithin15min, withMilford: sc.pctWithin15min },
+    { mins: 30, current: cur.pctWithin30min, withMilford: sc.pctWithin30min },
+    { mins: 45, current: cur.pctWithin45min, withMilford: sc.pctWithin45min },
+  ]
+
+  // Hub-assignment shift bar data
+  const hubShift = ca.hubAssignmentWithMilford.map(h => {
+    const before = ca.hubAssignmentCurrent.find(x => x.name === h.name)
+    return {
+      name: h.name,
+      current: before ? before.pop : 0,
+      withMilford: h.pop,
+    }
+  })
+
+  // EMS-expansion investment scenario (illustrative, kept for financial framing)
+  const opt = COVERAGE_DATA.optimizedState
   const revMo = opt.annualRevenueCapture / 12
   const opexMo = opt.annualOpEx / 12
   const cap = opt.capitalCost
@@ -533,83 +713,116 @@ function CoverageOptimizerLayer() {
   for (let m = 0; m <= 36; m++) {
     investment.push({
       month: m,
-      revenue: +((revMo * m) / 1000).toFixed(1),         // $K cumulative
-      opex: +((opexMo * m + cap) / 1000).toFixed(1),     // $K cumulative
+      revenue: +((revMo * m) / 1000).toFixed(1),
+      opex: +((opexMo * m + cap) / 1000).toFixed(1),
       net: +((((revMo - opexMo) * m) - cap) / 1000).toFixed(1),
     })
   }
 
+  const fmt = n => n.toLocaleString()
+
   return (
     <div className="layer-fade space-y-4">
+      <div className="bg-[#172033] border border-[#334155] rounded px-4 py-2.5 text-[11px] text-slate-400 flex flex-wrap gap-x-5 gap-y-1">
+        <span><span className="text-slate-500">Source:</span> {ca.source}</span>
+        <span><span className="text-slate-500">Block groups:</span> <span className="metric-num text-slate-200">{ca.blockGroups}</span></span>
+        <span><span className="text-slate-500">Total residents:</span> <span className="metric-num text-slate-200">{fmt(ca.totalResidents)}</span></span>
+        <span><span className="text-slate-500">Drive model:</span> haversine × {ca.driveTimeModel.detourFactor} detour, {ca.driveTimeModel.speedMph} mph avg</span>
+      </div>
+
       <div className="grid grid-cols-12 gap-4">
         <KPICard
           col="col-span-12 md:col-span-4"
-          title="Population Coverage"
-          subtitle="Within 8-min ALS"
-          current={`${(cur.populationCovered8min * 100).toFixed(0)}%`}
-          optimized={`${(opt.populationCovered8min * 100).toFixed(0)}%`}
-          delta="+17pp"
+          title="Pop. within 30-min PCI access"
+          subtitle="Census 2020, statewide"
+          current={`${cur.pctWithin30min}%`}
+          optimized={`${sc.pctWithin30min}%`}
+          delta={`+${ca.delta.pctWithin30minDelta} pp`}
           accent="ok"
         />
         <KPICard
           col="col-span-12 md:col-span-4"
-          title="STEMI Target Achievement"
-          subtitle="FMC→Device <90 min"
-          current={`${(cur.stemisMeetingFMC90 * 100).toFixed(0)}%`}
-          optimized={`${(opt.stemisMeetingFMC90 * 100).toFixed(0)}%`}
-          delta="+21pp"
+          title="Mean drive to nearest PCI"
+          subtitle="Population-weighted"
+          current={`${cur.meanDriveMin} min`}
+          optimized={`${sc.meanDriveMin} min`}
+          delta={`-${ca.delta.meanDriveSavedMin} min`}
           accent="ok"
         />
         <KPICard
           col="col-span-12 md:col-span-4"
-          title="Lives Saved (annual)"
-          subtitle="Excess deaths averted"
-          current={`${cur.annualExcessDeaths}/yr deaths`}
-          optimized={`${opt.annualExcessDeaths}/yr deaths`}
-          delta={`+${opt.annualLivesSaved} saved`}
+          title="Residents gaining ≤30-min access"
+          subtitle="With + Milford PCI center"
+          current={`${fmt(cur.residentsBeyond30min)} beyond`}
+          optimized={`${fmt(sc.residentsBeyond30min)} beyond`}
+          delta={`+${fmt(ca.delta.residentsGaining30minAccess)} (${ca.delta.pctOfState}%)`}
           accent="ok"
           big
         />
       </div>
 
-      <Panel title="Identified Gap Zones · MEXCLP Output">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-slate-400">
-              <th className="text-left py-2">Zone</th>
-              <th className="text-right py-2">Population</th>
-              <th className="text-right py-2">Current EMS</th>
-              <th className="text-right py-2">Optimized</th>
-              <th className="text-right py-2">Annual STEMIs</th>
-              <th className="text-right py-2">Recommended Station</th>
-              <th className="text-right py-2">Priority</th>
-            </tr>
-          </thead>
-          <tbody>
-            {COVERAGE_DATA.gapZones.map(z => (
-              <tr key={z.id} className="border-t border-[#334155]">
-                <td className="py-2.5 text-slate-100 font-medium">{z.label}</td>
-                <td className="py-2.5 text-right metric-num">{z.population.toLocaleString()}</td>
-                <td className="py-2.5 text-right metric-num text-[#ef4444]">{z.currentResponseMin} min</td>
-                <td className="py-2.5 text-right metric-num text-[#22c55e]">{z.optimizedResponseMin} min</td>
-                <td className="py-2.5 text-right metric-num">{z.annualSTEMIs}</td>
-                <td className="py-2.5 text-right text-slate-300">{z.recommendedStation}</td>
-                <td className="py-2.5 text-right">
-                  <span className={[
-                    'text-[10px] uppercase tracking-wider px-2 py-1 rounded font-bold',
-                    z.priority === 'CRITICAL' ? 'bg-[#7f1d1d]/60 text-[#fecaca] border border-[#ef4444]/50' : 'bg-[#78350f]/60 text-[#fde68a] border border-[#f59e0b]/50',
-                  ].join(' ')}>
-                    {z.priority === 'CRITICAL' ? '🔴' : '🟠'} {z.priority}
-                  </span>
-                </td>
+      <div className="grid grid-cols-12 gap-4">
+        <Panel className="col-span-12 lg:col-span-7" title="Cumulative Drive-Time Access · Current vs. + Milford PCI">
+          <div style={{ width: '100%', height: 240 }}>
+            <ResponsiveContainer>
+              <LineChart data={accessCurve} margin={{ top: 10, right: 25, left: 0, bottom: 5 }}>
+                <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
+                <XAxis dataKey="mins" tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#475569" label={{ value: 'Drive-time threshold (min)', position: 'insideBottom', offset: -2, fill: '#64748b', fontSize: 10 }} />
+                <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#475569" domain={[40, 100]} label={{ value: '% pop. reachable', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
+                <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6 }} formatter={(v, n) => [`${v}%`, n]} labelFormatter={l => `≤ ${l} min`} />
+                <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
+                <ReferenceLine x={30} stroke="#ef4444" strokeDasharray="4 2" label={{ value: '30-min target', fill: '#ef4444', fontSize: 10, position: 'top' }} />
+                <Line type="monotone" dataKey="current" name="Current 6-center network" stroke="#94a3b8" strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="withMilford" name="+ Milford PCI (7 centers)" stroke="#14b8a6" strokeWidth={2.5} dot={{ r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </Panel>
+
+        <Panel className="col-span-12 lg:col-span-5" title="Catchment Shift by Hub · Population Reassigned">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[10px] uppercase tracking-wider text-slate-500">
+                <th className="text-left py-1.5">Hub</th>
+                <th className="text-right py-1.5">Current</th>
+                <th className="text-right py-1.5">+ Milford</th>
+                <th className="text-right py-1.5">Δ</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </Panel>
+            </thead>
+            <tbody>
+              {ca.hubAssignmentWithMilford.map(h => {
+                const before = ca.hubAssignmentCurrent.find(x => x.name === h.name)
+                const beforePop = before ? before.pop : 0
+                const delta = h.pop - beforePop
+                const isNew = h.isNew
+                const deltaColor = delta > 0 ? 'text-[#22c55e]' : delta < 0 ? 'text-[#f59e0b]' : 'text-slate-500'
+                return (
+                  <tr key={h.name} className="border-t border-[#334155]/60">
+                    <td className="py-1.5">
+                      <div className={['font-medium', isNew ? 'text-[#14b8a6]' : 'text-slate-200'].join(' ')}>
+                        {h.name}
+                        {isNew && <span className="ml-1.5 text-[9px] uppercase tracking-wider bg-[#14b8a6] text-slate-900 px-1.5 py-0.5 rounded">NEW</span>}
+                      </div>
+                      <div className="text-[10px] text-slate-500">{h.city}</div>
+                    </td>
+                    <td className="py-1.5 text-right metric-num text-slate-300">{fmt(beforePop)}</td>
+                    <td className="py-1.5 text-right metric-num text-slate-100">{fmt(h.pop)}</td>
+                    <td className={['py-1.5 text-right metric-num font-semibold', deltaColor].join(' ')}>
+                      {delta > 0 ? '+' : ''}{fmt(delta)}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </Panel>
+      </div>
 
       <div className="grid grid-cols-12 gap-4">
-        <Panel className="col-span-12 lg:col-span-5" title="Investment Return · 2-Unit Expansion" accent="teal">
+        <Panel className="col-span-12 lg:col-span-5" title="Capital Scenario · EMS Expansion (illustrative)" accent="teal">
+          <div className="text-[11px] text-slate-500 mb-2">
+            Separate scenario, layered on access analysis. Numbers illustrative until tied to live registry feed.
+          </div>
           <table className="w-full text-sm">
             <tbody>
               {[
@@ -618,7 +831,7 @@ function CoverageOptimizerLayer() {
                 ['Annual revenue capture', `$${(opt.annualRevenueCapture / 1000).toFixed(0)}K`],
                 ['Net annual contribution', `+$${(opt.netContribution / 1000).toFixed(0)}K`],
                 ['Payback period', `${opt.paybackMonths} months`],
-                ['Estimated lives saved (10yr)', '14–22'],
+                ['Lives saved 10-yr (modeled)', '14 to 22'],
               ].map(([k, v]) => (
                 <tr key={k} className="border-b border-[#334155]/60">
                   <td className="py-2 text-slate-300">{k}</td>
@@ -636,11 +849,7 @@ function CoverageOptimizerLayer() {
                 <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
                 <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#475569" label={{ value: 'Month', position: 'insideBottom', offset: -2, fill: '#64748b', fontSize: 10 }} />
                 <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#475569" label={{ value: '$K', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
-                <Tooltip
-                  contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6 }}
-                  formatter={(v, n) => [`$${v}K`, n]}
-                  labelFormatter={(m) => `Month ${m}`}
-                />
+                <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6 }} formatter={(v, n) => [`$${v}K`, n]} labelFormatter={(m) => `Month ${m}`} />
                 <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
                 <ReferenceLine x={24} stroke="#22c55e" strokeDasharray="4 2" label={{ value: 'Payback (m24)', fill: '#22c55e', fontSize: 10, position: 'top' }} />
                 <ReferenceLine y={0} stroke="#475569" />
@@ -785,7 +994,7 @@ function RoleDashboardsLayer() {
                 <div className="text-slate-200 font-semibold mb-1.5">Where this view shines</div>
                 {role === 'ems' && 'Action-first dispatcher view. Recommendation, expected times, and the pre-activation trigger sit at the top so the crew can act in seconds.'}
                 {role === 'spokeER' && 'DIDO performance against NCDR national benchmarks, with the predicted bottleneck flagged so the medical director knows where to intervene.'}
-                {role === 'stateDOH' && 'Population-level coverage and gap zones. Pairs with the Coverage Optimizer to justify capital and grant requests.'}
+                {role === 'stateDOH' && 'Population-level coverage and gap zones. Pairs with the Coverage layer to justify capital and grant requests.'}
               </div>
             )}
           </div>
@@ -1013,10 +1222,19 @@ function Stat({ label, value, tone = 'info', compact }) {
 // ─────────────────────────────────────────────────────────────
 export default function App() {
   const [layer, setLayer] = useState('live_event')
+  const [aboutOpen, setAboutOpen] = useState(false)
+
+  // Esc to close About
+  useEffect(() => {
+    if (!aboutOpen) return
+    const onKey = e => { if (e.key === 'Escape') setAboutOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [aboutOpen])
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 flex flex-col">
-      <Header />
+      <Header onAbout={() => setAboutOpen(true)} />
       <LayerToggle active={layer} onChange={setLayer} />
 
       <main className="flex-1 px-6 py-5 max-w-[1400px] w-full mx-auto">
@@ -1028,10 +1246,12 @@ export default function App() {
       </main>
 
       <footer className="border-t border-[#334155] bg-[#0b1322] px-6 py-2.5 text-[11px] text-slate-500 flex flex-wrap gap-x-4 gap-y-1 justify-between">
-        <span>Data source: NCDR ACTION Registry + CathPCI</span>
-        <span>Architecture: Stochastic Shortest-Path (M3)</span>
+        <span>Data source: NCDR ACTION + CathPCI · U.S. Census CenPop2020</span>
+        <span>Architecture: stochastic shortest-path simulator</span>
         <span>© 2026 STEMI-NI</span>
       </footer>
+
+      {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
     </div>
   )
 }

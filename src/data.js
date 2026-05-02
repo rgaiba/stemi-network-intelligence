@@ -11,8 +11,8 @@ export const NETWORK = {
   hubs: [
     {
       id: "hub_kent",
-      name: "Bayhealth Kent",
-      shortName: "Kent",
+      name: "Kent Regional Medical Center",
+      shortName: "Kent Regional",
       city: "Dover, DE",
       lat: 39.158, lng: -75.524,
       type: "pci_hub",
@@ -52,7 +52,7 @@ export const NETWORK = {
   spokeERs: [
     {
       id: "spoke_milford",
-      name: "Bayhealth Milford",
+      name: "Milford Community Hospital",
       shortName: "Milford ER",
       city: "Milford, DE",
       lat: 38.912, lng: -75.428,
@@ -320,7 +320,7 @@ export const NCDR_BENCHMARKS = {
     fmcToDevice_p50: 96,
     pctMeeting90min: 0.64,
   },
-  // Bayhealth Kent actuals vs. national
+  // Pilot hub actuals vs. national
   facilityActuals: {
     "hub_kent": {
       d2b_p50: 52,
@@ -352,12 +352,12 @@ export const ROLE_DASHBOARDS = {
     persona: "Medic-4 crew, en route",
     primaryMetric: "Routing Recommendation",
     widgets: [
-      { label: "Recommendation",          value: "BYPASS → Kent PCI",  status: "action", highlight: true },
+      { label: "Recommendation",          value: "BYPASS → Kent Regional PCI",  status: "action", highlight: true },
       { label: "Expected FMC→Device",     value: "87 min [73–108]",    status: "warn" },
       { label: "Confidence <90 min",      value: "62%",                status: "warn" },
       { label: "Cath Lab Pre-Activation", value: "SEND NOW",           status: "action" },
       { label: "Preferred Route",         value: "US-13 N → DE-1 N",  status: "info" },
-      { label: "ETA to Kent",             value: "44 min",             status: "info" },
+      { label: "ETA to Kent Regional",    value: "44 min",             status: "info" },
       { label: "Alt: Via Milford ER",     value: "121 min expected",   status: "bad" },
       { label: "HEMS Threshold",          value: "Not met (ground OK)", status: "ok" },
     ],
@@ -379,7 +379,7 @@ export const ROLE_DASHBOARDS = {
   },
   pciHub: {
     role: "PCI Hub Cath Lab Director",
-    persona: "Bayhealth Kent, live queue",
+    persona: "Kent Regional, live queue",
     primaryMetric: "Live Queue + Incoming",
     widgets: [
       { label: "Incoming STEMI (pre-act.)", value: "1 — ETA 44 min",  status: "action", highlight: true },
@@ -409,7 +409,7 @@ export const ROLE_DASHBOARDS = {
   },
   cfo: {
     role: "Health System CFO",
-    persona: "Bayhealth System",
+    persona: "Pilot Health System",
     primaryMetric: "Financial Attribution",
     widgets: [
       { label: "STEMI Captures (Q1 2026)",    value: "38 (+7 vs. Q1 2025)", status: "ok" },
@@ -486,6 +486,62 @@ export const TREND_DATA = {
   ncdrNationalBenchmark: { fmcToDevice: 96, d2b: 58, dido: 43 },
 };
 
+// ── CENSUS-DERIVED PCI ACCESS (REAL NUMBERS) ──────────────
+// Source: U.S. Census Bureau CenPop2020 mean block-group centroids,
+// FIPS 10 (Delaware). 702 block groups, total residents 989,948.
+// Drive-time model: haversine distance × 1.35 detour factor / 45 mph.
+// Hospitals: 6 PCI-capable centers in current network (4 DE, 2 MD).
+// Scenario: + 1 PCI center in Milford, DE (mid-state coverage gap).
+export const CENSUS_ACCESS = {
+  source: "U.S. Census Bureau · CenPop2020 mean block-group centroids · FIPS 10",
+  blockGroups: 702,
+  totalResidents: 989948,
+  driveTimeModel: { detourFactor: 1.35, speedMph: 45 },
+  current: {
+    centers: 6,
+    pctWithin8min:  42.1,
+    pctWithin15min: 65.0,
+    pctWithin30min: 89.1,
+    pctWithin45min: 100.0,
+    meanDriveMin: 13.6,
+    medianDriveMin: 9.3,
+    residentsBeyond30min: 107840,
+  },
+  withMilford: {
+    centers: 7,
+    pctWithin8min:  44.2,
+    pctWithin15min: 69.5,
+    pctWithin30min: 91.5,
+    pctWithin45min: 100.0,
+    meanDriveMin: 12.5,
+    medianDriveMin: 9.0,
+    residentsBeyond30min: 83985,
+  },
+  delta: {
+    residentsGaining30minAccess: 23855,
+    pctOfState: 2.4,
+    pctWithin30minDelta: 2.4,
+    meanDriveSavedMin: 1.1,
+  },
+  hubAssignmentCurrent: [
+    { name: "Christiana",     city: "Newark, DE",     state: "DE", pop: 341380, pctOfState: 34.5 },
+    { name: "Wilmington",     city: "Wilmington, DE", state: "DE", pop: 221006, pctOfState: 22.3 },
+    { name: "Kent Regional",  city: "Dover, DE",      state: "DE", pop: 199223, pctOfState: 20.1 },
+    { name: "Beebe",          city: "Lewes, DE",      state: "DE", pop: 170931, pctOfState: 17.3 },
+    { name: "TidalHealth",    city: "Salisbury, MD",  state: "MD", pop:  54424, pctOfState:  5.5 },
+    { name: "Shore Easton",   city: "Easton, MD",     state: "MD", pop:   2984, pctOfState:  0.3 },
+  ],
+  hubAssignmentWithMilford: [
+    { name: "Christiana",     city: "Newark, DE",     state: "DE", pop: 341380, pctOfState: 34.5, delta:      0 },
+    { name: "Wilmington",     city: "Wilmington, DE", state: "DE", pop: 221006, pctOfState: 22.3, delta:      0 },
+    { name: "Kent Regional",  city: "Dover, DE",      state: "DE", pop: 157194, pctOfState: 15.9, delta: -42029 },
+    { name: "Milford PCI",    city: "Milford, DE",    state: "DE", pop:  75305, pctOfState:  7.6, delta: +75305, isNew: true },
+    { name: "Beebe",          city: "Lewes, DE",      state: "DE", pop: 145192, pctOfState: 14.7, delta: -25739 },
+    { name: "TidalHealth",    city: "Salisbury, MD",  state: "MD", pop:  49871, pctOfState:  5.0, delta:  -4553 },
+    { name: "Shore Easton",   city: "Easton, MD",     state: "MD", pop:      0, pctOfState:  0.0, delta:  -2984 },
+  ],
+};
+
 // ── LAYER DEFINITIONS ─────────────────────────────────────
 // Used to drive the layer toggle switch in the UI.
 export const LAYERS = [
@@ -505,9 +561,9 @@ export const LAYERS = [
   },
   {
     id: "coverage_optimizer",
-    label: "Coverage Optimizer",
+    label: "Coverage",
     icon: "🗺",
-    description: "MEXCLP static optimizer — optimal unit count, location, and gap zones",
+    description: "Population access to PCI centers, current vs. proposed-network scenario",
     color: "#0d6e5a",
   },
   {

@@ -1,17 +1,17 @@
 # STEMI Network Intelligence
 
-Interactive demo of a clinical decision-support platform that optimizes ambulance routing and EMS deployment for STEMI (heart attack) patients. Built on NCDR ACTION + CathPCI registry distributions and a stochastic shortest-path routing model.
+Interactive demo of a clinical decision-support platform that optimizes ambulance routing and EMS deployment for STEMI (heart attack) patients. Built on NCDR ACTION and CathPCI registry distributions, U.S. Census CenPop2020 population centroids, and a stochastic shortest-path routing model.
 
 The demo shows the full three-tier architecture (prediction models, routing simulator, system optimizer) surfaced through five role-aware views.
 
 ## What it shows
 
-The product centers on three predictive models stitched together by a system optimizer:
+The product centers on three predictive components stitched together by a system optimizer:
 
-- **M1 — DIDO Predictor.** Predicts door-in-door-out time at each spoke ER from NCDR distributions, ER census, and time-of-day load.
-- **M2 — D2B Predictor.** Predicts door-to-balloon time at each PCI hub from CathPCI distributions, pre-activation status, cath lab queue, and on-call team posture.
-- **M3 — FMC-to-Device Simulator.** Monte Carlo simulation across all candidate pathways. Outputs expected total time, P10/P90, and probability of meeting the 90-minute guideline.
-- **MEXCLP Coverage Optimizer.** Static system optimizer that recommends new EMS unit locations to close coverage gaps and lift FMC→device performance.
+- **DIDO Predictor.** Predicts door-in-door-out time at each spoke ER from NCDR distributions, ER census, and time-of-day load.
+- **D2B Predictor.** Predicts door-to-balloon time at each PCI hub from CathPCI distributions, pre-activation status, cath lab queue, and on-call team posture.
+- **FMC-to-Device Simulator.** Monte Carlo simulation across all candidate pathways. Outputs expected total time, P10/P90, and probability of meeting the 90-minute guideline.
+- **Coverage and Siting Layer.** Population access analysis using U.S. Census CenPop2020 mean block-group centroids. Adds a MEXCLP siting view for EMS expansion.
 
 These compose into five interactive layers in the demo.
 
@@ -20,10 +20,10 @@ These compose into five interactive layers in the demo.
 | Layer | Purpose |
 | --- | --- |
 | Live Event | Real-time pathway recommendation for an active STEMI. Three pathways compared on the same 90-minute guideline. |
-| Prediction Models | M1 (DIDO) and M2 (D2B) outputs with NCDR-derived distributions, plus the M3 Monte Carlo result for the recommended pathway. |
-| Coverage Optimizer | MEXCLP output. Current vs. optimized coverage, identified gap zones, and a 36-month investment-return view with payback line. |
-| Role Dashboards | The same underlying data surfaced for six personas — EMS Crew, Spoke ER, PCI Hub, State DOH, CFO, Research. |
-| Network State | The current S(t) — five EMS units, three spoke ERs, two PCI hubs, with TOD-adjusted predictions. |
+| Prediction Models | DIDO and D2B outputs with NCDR-derived distributions, plus the FMC-to-device Monte Carlo result for the recommended pathway. |
+| Coverage | Census-derived drive-time access to PCI centers. Current six-center network vs. seven-center scenario adding a Milford PCI hub. Includes a separate EMS expansion capital scenario. |
+| Role Dashboards | The same underlying data surfaced for six personas: EMS Crew, Spoke ER, PCI Hub, State DOH, CFO, Research. |
+| Network State | The current S(t): five EMS units, three spoke ERs, two PCI hubs, with TOD-adjusted predictions. |
 
 ## Tech stack
 
@@ -71,7 +71,9 @@ The compiled bundle lands in `dist/` and is fully static — drop it on any stat
 
 ## Data provenance
 
-The numbers in `src/data.js` are illustrative and derived from public NCDR ACTION and CathPCI distributions, Delaware EMS network topology, and operations-research literature on ambulance siting (MEXCLP). Nothing here represents a real patient or a real audit. Replace with live registry feeds and real-time CAD/dispatch data for production use.
+Population access numbers in the Coverage layer are derived from the U.S. Census Bureau CenPop2020 mean block-group centroids for Delaware (FIPS 10): 702 block groups, 989,948 residents. Drive time uses haversine distance with a 1.35 detour factor at 45 mph average speed. The current six-center PCI network is benchmarked against a seven-center scenario adding a mid-state PCI hub at Milford.
+
+Time-distribution inputs (DIDO, D2B) and the active STEMI event in `src/data.js` are illustrative and derived from public NCDR ACTION and CathPCI distributions and operations-research literature. The active patient and routing scenario are synthetic. Replace illustrative inputs with live registry feeds and real-time CAD/dispatch data for production use.
 
 ## Design notes
 
@@ -84,7 +86,7 @@ The numbers in `src/data.js` are illustrative and derived from public NCDR ACTIO
 - Live CAD/dispatch integration for the active-event feed.
 - Real-time NCDR pull for benchmark refresh.
 - Map view for the Network State layer (currently tabular).
-- Scenario simulator on the Coverage Optimizer (drag candidate stations, recompute MEXCLP).
+- Scenario simulator on the Coverage layer (drag candidate stations, recompute MEXCLP).
 
 ## License
 
