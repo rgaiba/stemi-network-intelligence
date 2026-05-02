@@ -127,9 +127,9 @@ function Header({ onAbout, aboutActive }) {
 function AboutPage({ onBack }) {
   return (
     <div className="bg-[#fafaf7] text-[#1a1e2e] min-h-[calc(100vh-128px)]">
-      <div className="max-w-3xl mx-auto px-6 sm:px-10 py-10 font-serif">
+      <div className="max-w-5xl mx-auto px-6 sm:px-8 py-6 font-serif">
         {/* Top metadata bar */}
-        <div className="flex items-center justify-between border-b border-[#d4d6dc] pb-3 mb-6 text-[11px] uppercase tracking-[0.16em] text-[#7a7f8e]" style={{ fontFamily: 'JetBrains Mono, ui-monospace, monospace' }}>
+        <div className="flex items-center justify-between border-b border-[#d4d6dc] pb-2 mb-4 text-[11px] uppercase tracking-[0.16em] text-[#7a7f8e]" style={{ fontFamily: 'JetBrains Mono, ui-monospace, monospace' }}>
           <span>About · Methodology and Evidence</span>
           <button
             onClick={onBack}
@@ -139,22 +139,20 @@ function AboutPage({ onBack }) {
           </button>
         </div>
 
-        {/* Title block */}
-        <div className="mb-8">
-          <div className="text-[10px] uppercase tracking-[0.22em] text-[#7a7f8e] mb-2" style={{ fontFamily: 'JetBrains Mono, ui-monospace, monospace' }}>
-            Research-Grade Clinical Decision Support
-          </div>
-          <h1 className="text-[34px] leading-[1.1] font-medium tracking-[-0.02em]">
+        {/* Compact title block */}
+        <header className="mb-4">
+          <h1 className="text-[20px] sm:text-[22px] font-medium tracking-[-0.01em] leading-[1.2] text-[#1a1e2e]">
             Network-Aware EMS Dispatch for ST-Elevation Myocardial Infarction
           </h1>
-          <p className="mt-3 text-[15px] text-[#3a4055] leading-relaxed">
-            A decision-analytic dashboard parameterized by the NCDR ACTION and CathPCI Registries,
-            U.S. Census population centroids, and the operations-research literature on ambulance
-            location. Designed for the prehospital, hospital, and policy decision-maker.
+          <p className="mt-1 text-[11.5px] text-[#6a7287]" style={{ fontFamily: 'JetBrains Mono, ui-monospace, monospace' }}>
+            Decision-analytic dashboard · NCDR ACTION + CathPCI · U.S. Census CenPop2020
           </p>
-        </div>
+        </header>
 
-        <div className="space-y-8 text-[14.5px] leading-[1.7] text-[#252a3d]">
+        {/* Hero figure showing the solution */}
+        <NetworkAwareFigure />
+
+        <div className="space-y-8 text-[14.5px] leading-[1.7] text-[#252a3d] max-w-3xl mx-auto mt-8">
           {/* 1. Why This Is Important */}
           <Section2 num="1" title="Why this is important">
             <p>
@@ -372,7 +370,247 @@ function AboutPage({ onBack }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Central architecture figure for the About page (JACC-style)
+// FIGURE 1 — Hero comparison: traditional vs network-aware
+// dispatch. This is the central illustration that demonstrates
+// the solution.
+// ─────────────────────────────────────────────────────────────
+function NetworkAwareFigure() {
+  const C = {
+    navy: '#1a3759',
+    teal: '#1f7d75',
+    gold: '#b8860b',
+    red:  '#c62828',
+    text: '#1a1e2e',
+    muted:'#6a7287',
+    border:'#d4d6dc',
+    bg:   '#fafaf7',
+    panel:'#ffffff',
+    fade: '#cbd5e1',
+  }
+  const fSans = 'Inter, ui-sans-serif, system-ui, sans-serif'
+  const fMono = 'JetBrains Mono, ui-monospace, SFMono-Regular, monospace'
+
+  // Map node positions (within the panel-relative map area at translate(20, 70))
+  const PCI     = { x: 240, y: 36 }
+  const SPOKE   = { x: 215, y: 138 }
+  const PATIENT = { x: 270, y: 244 }
+  const ALL_EMS = [
+    { x:  85, y:  74 }, { x: 390, y:  60 },
+    { x: 130, y: 158 }, { x: 350, y: 174 },
+    { x: 175, y: 256 }, { x: 350, y: 264 },
+  ]
+  // In the traditional configuration only zone-C units are visible to the dispatching system
+  const TRAD_VISIBLE = [false, false, false, false, true, true]
+
+  // Dispatched-unit indices (what the system actually picks)
+  const TRAD_DISPATCHED = 4 // U5 in zone C
+  const NET_DISPATCHED  = 5 // U6 in zone C, but illustrative — could be a cross-zone unit
+
+  // Map zones (horizontal bands inside the service-area rectangle)
+  const ZB1 = 100  // bottom of zone A
+  const ZB2 = 208  // bottom of zone B  (zone C runs to 280)
+
+  // Render the map scene; `mode` is 'traditional' or 'network'
+  const MapScene = ({ mode }) => {
+    const isTrad = mode === 'traditional'
+    return (
+      <g transform="translate(20, 70)">
+        {/* Service-area background */}
+        <rect width="480" height="280" fill="#fcfcf8" stroke={C.border} strokeWidth="1" rx="3" />
+
+        {/* Agency / zone boundaries */}
+        <line x1="0" y1={ZB1} x2="480" y2={ZB1}
+          stroke={isTrad ? '#7a7f8e' : '#e5e7eb'}
+          strokeWidth={isTrad ? 1.4 : 0.8}
+          strokeDasharray={isTrad ? '0' : '4 3'} />
+        <line x1="0" y1={ZB2} x2="480" y2={ZB2}
+          stroke={isTrad ? '#7a7f8e' : '#e5e7eb'}
+          strokeWidth={isTrad ? 1.4 : 0.8}
+          strokeDasharray={isTrad ? '0' : '4 3'} />
+
+        {/* Zone labels */}
+        {isTrad ? (
+          <g fontFamily={fMono} fontSize="9" fill={C.muted} fontWeight="600" letterSpacing="0.6">
+            <text x="8" y="16">AGENCY A</text>
+            <text x="8" y={ZB1 + 16}>AGENCY B</text>
+            <text x="8" y={ZB2 + 16}>AGENCY C</text>
+          </g>
+        ) : (
+          <text x="8" y="16" fontFamily={fMono} fontSize="9" fill={C.muted} fontStyle="italic">
+            unified dispatch surface (boundaries administrative only)
+          </text>
+        )}
+
+        {/* EMS units */}
+        {ALL_EMS.map((u, i) => {
+          const visible = isTrad ? TRAD_VISIBLE[i] : true
+          const dispatched = (isTrad && i === TRAD_DISPATCHED) || (!isTrad && i === NET_DISPATCHED)
+          const fill = dispatched ? (isTrad ? C.red : C.teal) : (visible ? C.text : C.fade)
+          return (
+            <g key={i}>
+              {dispatched && (
+                <circle cx={u.x} cy={u.y} r="11" fill="none" stroke={isTrad ? C.red : C.teal} strokeWidth="1.2" strokeOpacity="0.5" />
+              )}
+              <circle cx={u.x} cy={u.y} r="5" fill={fill} stroke="#fff" strokeWidth="1" />
+            </g>
+          )
+        })}
+
+        {/* PCI Hub (always present, top center) */}
+        <g transform={`translate(${PCI.x}, ${PCI.y})`}>
+          <circle r="15" fill={C.navy} />
+          <path d="M -7 0 L 7 0 M 0 -7 L 0 7" stroke="#fff" strokeWidth="2" />
+          <text x="0" y="-22" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.navy} textAnchor="middle">PCI HUB</text>
+        </g>
+
+        {/* Spoke ED (faded in network-aware view to signal it is bypassed) */}
+        <g transform={`translate(${SPOKE.x}, ${SPOKE.y})`} opacity={isTrad ? 1 : 0.35}>
+          <rect x="-10" y="-10" width="20" height="20" fill="#fff" stroke={C.muted} strokeWidth="1.4" />
+          <text x="0" y="3" fontFamily={fSans} fontSize="9" fontWeight="700" fill={C.muted} textAnchor="middle">ED</text>
+          <text x="0" y="-16" fontFamily={fSans} fontSize="9" fill={C.muted} textAnchor="middle">Spoke</text>
+        </g>
+
+        {/* Patient origin */}
+        <g transform={`translate(${PATIENT.x}, ${PATIENT.y})`}>
+          <circle r="10" fill="#fff" stroke={C.red} strokeWidth="2" />
+          <path d="M -5 0 L 5 0 M 0 -5 L 0 5" stroke={C.red} strokeWidth="2" />
+          <text x="14" y="4" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.red}>STEMI</text>
+        </g>
+
+        {/* Routing path */}
+        {isTrad ? (
+          <g fill="none">
+            {/* Patient → Spoke ED → PCI Hub (two-leg, suboptimal) */}
+            <line x1={PATIENT.x} y1={PATIENT.y} x2={SPOKE.x} y2={SPOKE.y}
+              stroke={C.red} strokeWidth="2.4" strokeDasharray="7 4"
+              markerEnd="url(#tradArr)" />
+            <line x1={SPOKE.x} y1={SPOKE.y} x2={PCI.x} y2={PCI.y}
+              stroke={C.red} strokeWidth="2.4" strokeDasharray="7 4"
+              markerEnd="url(#tradArr)" />
+            {/* leg labels */}
+            <text x={(PATIENT.x + SPOKE.x) / 2 + 12} y={(PATIENT.y + SPOKE.y) / 2}
+              fontFamily={fMono} fontSize="9" fill={C.red}>1 · transport</text>
+            <text x={(SPOKE.x + PCI.x) / 2 + 12} y={(SPOKE.y + PCI.y) / 2}
+              fontFamily={fMono} fontSize="9" fill={C.red}>2 · transfer</text>
+          </g>
+        ) : (
+          <g fill="none">
+            {/* Patient → PCI Hub direct (optimal) */}
+            <line x1={PATIENT.x} y1={PATIENT.y} x2={PCI.x} y2={PCI.y}
+              stroke={C.teal} strokeWidth="3.2"
+              markerEnd="url(#netArr)" />
+            <text x={(PATIENT.x + PCI.x) / 2 + 14} y={(PATIENT.y + PCI.y) / 2}
+              fontFamily={fMono} fontSize="9.5" fontWeight="700" fill={C.teal}>direct PCI bypass</text>
+          </g>
+        )}
+      </g>
+    )
+  }
+
+  return (
+    <figure className="my-2 bg-white border border-[#d4d6dc] rounded shadow-sm overflow-hidden">
+      <div className="border-b border-[#d4d6dc] px-5 py-2.5 flex items-baseline justify-between gap-4">
+        <span className="text-[11px] uppercase tracking-[0.18em] text-[#b8860b] font-semibold" style={{ fontFamily: fMono }}>
+          Figure 1
+        </span>
+        <span className="text-[12px] text-[#3a4055] italic">
+          The solution: network-aware dispatch versus traditional dispatch for STEMI
+        </span>
+      </div>
+
+      <div className="p-3 sm:p-5 bg-white">
+        <svg viewBox="0 0 1100 480" className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <marker id="tradArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill={C.red} />
+            </marker>
+            <marker id="netArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill={C.teal} />
+            </marker>
+            <marker id="goldArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill={C.gold} />
+            </marker>
+          </defs>
+
+          {/* ─────────── LEFT PANEL · Traditional ─────────── */}
+          <g transform="translate(0, 0)">
+            <rect x="20" y="20" width="520" height="440" fill={C.panel} stroke={C.border} rx="3" />
+            {/* Title strip */}
+            <rect x="20" y="20" width="520" height="40" fill="#fafaf7" />
+            <text x="34" y="42" fontFamily={fMono} fontSize="10" fontWeight="700" fill={C.muted} letterSpacing="1.4">BEFORE</text>
+            <text x="100" y="42" fontFamily={fSans} fontSize="13.5" fontWeight="700" fill={C.text}>Traditional dispatch</text>
+            <text x="100" y="56" fontFamily={fSans} fontSize="9.5" fill={C.muted}>Siloed agencies · static bypass protocols · no cross-jurisdictional visibility</text>
+
+            {/* Map */}
+            <MapScene mode="traditional" />
+
+            {/* Outcome strip */}
+            <g transform="translate(36, 380)">
+              <rect width="488" height="64" fill="#fff5f5" stroke={C.red} strokeWidth="0.8" rx="3" />
+              <text x="14" y="20" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.red} letterSpacing="0.5">EXPECTED OUTCOME</text>
+              <text x="14" y="50" fontFamily={fMono} fontSize="22" fontWeight="700" fill={C.text}>121 min</text>
+              <text x="120" y="42" fontFamily={fSans} fontSize="11" fill={C.text}>FMC → Device, via spoke ED transfer</text>
+              <text x="120" y="56" fontFamily={fSans} fontSize="10" fill={C.muted}>Probability ≤ 90 min: <tspan fontFamily={fMono} fontWeight="700" fill={C.red}>9%</tspan></text>
+            </g>
+          </g>
+
+          {/* ─────────── CENTER · Transformation arrow ─────────── */}
+          <g transform="translate(540, 220)">
+            <text x="20" y="-2" fontFamily={fMono} fontSize="9.5" fontWeight="700" fill={C.gold} letterSpacing="1.5" textAnchor="middle">SOLVES WITH</text>
+            <line x1="0" y1="22" x2="40" y2="22" stroke={C.gold} strokeWidth="2.5" markerEnd="url(#goldArr)" />
+            <text x="20" y="40" fontFamily={fMono} fontSize="8.5" fill={C.muted} textAnchor="middle">NCDR + CenPop2020</text>
+            <text x="20" y="51" fontFamily={fMono} fontSize="8.5" fill={C.muted} textAnchor="middle">+ live CAD telemetry</text>
+          </g>
+
+          {/* ─────────── RIGHT PANEL · Network-aware ─────────── */}
+          <g transform="translate(560, 0)">
+            <rect x="0" y="20" width="520" height="440" fill={C.panel} stroke={C.teal} strokeWidth="1.4" rx="3" />
+            {/* Title strip */}
+            <rect x="0" y="20" width="520" height="40" fill="#f0faf8" />
+            <text x="14" y="42" fontFamily={fMono} fontSize="10" fontWeight="700" fill={C.teal} letterSpacing="1.4">AFTER</text>
+            <text x="74" y="42" fontFamily={fSans} fontSize="13.5" fontWeight="700" fill={C.text}>Network-aware dispatch</text>
+            <text x="74" y="56" fontFamily={fSans} fontSize="9.5" fill={C.muted}>Cross-jurisdictional visibility · real-time NCDR-conditioned routing</text>
+
+            {/* Map */}
+            <MapScene mode="network" />
+
+            {/* Outcome strip */}
+            <g transform="translate(16, 380)">
+              <rect width="488" height="64" fill="#f0faf8" stroke={C.teal} strokeWidth="0.8" rx="3" />
+              <text x="14" y="20" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.teal} letterSpacing="0.5">EXPECTED OUTCOME</text>
+              <text x="14" y="50" fontFamily={fMono} fontSize="22" fontWeight="700" fill={C.text}>87 min</text>
+              <text x="120" y="42" fontFamily={fSans} fontSize="11" fill={C.text}>FMC → Device, direct PCI bypass</text>
+              <text x="120" y="56" fontFamily={fSans} fontSize="10" fill={C.muted}>Probability ≤ 90 min: <tspan fontFamily={fMono} fontWeight="700" fill={C.teal}>62%</tspan></text>
+              {/* Time-saved chip */}
+              <g transform="translate(380, 14)">
+                <rect width="96" height="40" fill={C.teal} rx="3" />
+                <text x="48" y="16" fontFamily={fMono} fontSize="9" fontWeight="700" fill="#fff" textAnchor="middle" letterSpacing="0.6">TIME SAVED</text>
+                <text x="48" y="34" fontFamily={fMono} fontSize="15" fontWeight="700" fill="#fff" textAnchor="middle">−34 min</text>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </div>
+
+      <figcaption className="px-5 py-3 text-[12px] italic text-[#3a4055] leading-[1.65] border-t border-[#d4d6dc] bg-[#fafaf7]">
+        <span className="font-semibold not-italic text-[#1a1e2e]">Figure 1.</span> The solution.
+        Traditional dispatch (left) operates within agency silos. The dispatching system has no
+        visibility of advanced life support units across boundaries; static bypass protocols select
+        the destination hospital by geographic distance; the patient is routed to the spoke
+        emergency department and then transferred to the percutaneous coronary intervention hub.
+        Network-aware dispatch (right) treats agency boundaries as administrative only. All units
+        are cross-visible, the routing decision is computed against real-time NCDR-conditioned
+        predictions of door-in-door-out and door-to-balloon times, and the recommended pathway
+        bypasses the spoke. Modeled time saved per case in the Delaware pilot network is 34
+        minutes (121 min versus 87 min expected first-medical-contact-to-device). ED, emergency
+        department; FMC, first medical contact.
+      </figcaption>
+    </figure>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// FIGURE 2 — Three-tier architecture (placed at end of Methods)
 // ─────────────────────────────────────────────────────────────
 function ArchitectureFigure() {
   // Color palette tuned for an academic figure
@@ -433,7 +671,7 @@ function ArchitectureFigure() {
     <figure className="my-8 bg-white border border-[#d4d6dc] rounded shadow-sm overflow-hidden">
       <div className="border-b border-[#d4d6dc] px-5 py-2.5 flex items-baseline justify-between gap-4">
         <span className="text-[11px] uppercase tracking-[0.18em] text-[#b8860b] font-semibold" style={{ fontFamily: fMono }}>
-          Figure 1
+          Figure 2
         </span>
         <span className="text-[12px] text-[#3a4055] italic">
           Three-tier architecture of STEMI Network Intelligence
@@ -668,7 +906,7 @@ function ArchitectureFigure() {
       </div>
 
       <figcaption className="px-5 py-3 text-[12px] italic text-[#3a4055] leading-[1.65] border-t border-[#d4d6dc] bg-[#fafaf7]">
-        <span className="font-semibold not-italic text-[#1a1e2e]">Figure 1.</span> Three-tier
+        <span className="font-semibold not-italic text-[#1a1e2e]">Figure 2.</span> Three-tier
         architecture of STEMI Network Intelligence. Tier A ingests facility-level distributions
         from the NCDR ACTION and CathPCI Registries, U.S. Census Bureau CenPop2020 mean
         block-group centroids, real-time computer-aided dispatch telemetry, and the
