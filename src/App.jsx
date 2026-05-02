@@ -69,7 +69,7 @@ const layerIcon = (id, props = {}) => {
 // ─────────────────────────────────────────────────────────────
 // Header
 // ─────────────────────────────────────────────────────────────
-function Header({ onAbout }) {
+function Header({ onAbout, aboutActive }) {
   const [now, setNow] = useState(new Date())
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000)
@@ -99,11 +99,16 @@ function Header({ onAbout }) {
           </div>
           <button
             onClick={onAbout}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#172033] border border-[#334155] text-slate-300 hover:bg-[#243248] hover:text-slate-100 hover:border-[#14b8a6]/60 transition"
-            title="About this dashboard"
+            className={[
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition',
+              aboutActive
+                ? 'bg-[#14b8a6] border-[#14b8a6] text-slate-900 font-semibold'
+                : 'bg-[#172033] border-[#334155] text-slate-300 hover:bg-[#243248] hover:text-slate-100 hover:border-[#14b8a6]/60',
+            ].join(' ')}
+            title={aboutActive ? 'Back to dashboard' : 'About this dashboard'}
           >
             <Info size={13} />
-            <span>About</span>
+            <span>{aboutActive ? 'Dashboard' : 'About'}</span>
           </button>
           <div className="metric-num pl-2">
             <span className="text-slate-100 font-semibold">{time}</span>
@@ -116,140 +121,246 @@ function Header({ onAbout }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// About modal — JACC-style methodology and references
+// About page — light theme, NCDR research proposal structure,
+// written for a clinical audience.
 // ─────────────────────────────────────────────────────────────
-function AboutModal({ onClose }) {
+function AboutPage({ onBack }) {
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4 sm:p-8"
-      onClick={onClose}
-    >
-      <div
-        className="bg-[#0f172a] border border-[#334155] rounded-md max-w-3xl w-full my-4 shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-[#334155] px-6 py-3 sticky top-0 bg-[#0f172a] z-10">
-          <div className="flex items-center gap-2">
-            <Info size={16} className="text-[#14b8a6]" />
-            <span className="font-semibold text-slate-100">About this dashboard</span>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-100 p-1 rounded hover:bg-[#1e293b]">
-            <X size={16} />
+    <div className="bg-[#fafaf7] text-[#1a1e2e] min-h-[calc(100vh-128px)]">
+      <div className="max-w-3xl mx-auto px-6 sm:px-10 py-10 font-serif">
+        {/* Top metadata bar */}
+        <div className="flex items-center justify-between border-b border-[#d4d6dc] pb-3 mb-6 text-[11px] uppercase tracking-[0.16em] text-[#7a7f8e]" style={{ fontFamily: 'JetBrains Mono, ui-monospace, monospace' }}>
+          <span>About · Methodology and Evidence</span>
+          <button
+            onClick={onBack}
+            className="text-[#1a1e2e] hover:text-[#b8860b] transition flex items-center gap-1"
+          >
+            <X size={11} /> Back to dashboard
           </button>
         </div>
 
-        <div className="px-6 py-5 text-sm text-slate-200 leading-relaxed space-y-5">
-          <Section title="Overview">
-            <p>
-              The platform supports prehospital triage and system planning for ST-elevation myocardial
-              infarction (STEMI). The dashboard surfaces a single decision substrate across operations,
-              quality improvement, and finance.
-            </p>
-          </Section>
+        {/* Title block */}
+        <div className="mb-8">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-[#7a7f8e] mb-2" style={{ fontFamily: 'JetBrains Mono, ui-monospace, monospace' }}>
+            Research-Grade Clinical Decision Support
+          </div>
+          <h1 className="text-[34px] leading-[1.1] font-medium tracking-[-0.02em]">
+            Network-Aware EMS Dispatch for ST-Elevation Myocardial Infarction
+          </h1>
+          <p className="mt-3 text-[15px] text-[#3a4055] leading-relaxed">
+            A decision-analytic dashboard parameterized by the NCDR ACTION and CathPCI Registries,
+            U.S. Census population centroids, and the operations-research literature on ambulance
+            location. Designed for the prehospital, hospital, and policy decision-maker.
+          </p>
+        </div>
 
-          <Section title="NCDR-based prediction model">
+        <div className="space-y-8 text-[14.5px] leading-[1.7] text-[#252a3d]">
+          {/* 1. Why This Is Important */}
+          <Section2 num="1" title="Why this is important">
             <p>
-              Door-in-door-out (DIDO) and door-to-balloon (D2B) time distributions are derived from the
-              NCDR ACTION Registry and the CathPCI Registry [1,2]. Predictions are conditioned on facility
-              identity, time-of-day load, day-of-week, ED census, cath-lab queue depth, on-call team posture,
-              and pre-activation status [3,4]. Outputs are reported as P10, P50, and P90 to make uncertainty
-              explicit at the point of care.
+              ST-elevation myocardial infarction is the most time-sensitive emergency in cardiovascular
+              medicine. Primary percutaneous coronary intervention is highly effective when delivered
+              promptly, and its efficacy degrades in a dose-response relationship with time. The
+              relationship is quantified, consistent across multiple national datasets, and directly
+              actionable.
             </p>
-          </Section>
-
-          <Section title="Real-time routing">
             <p>
-              The routing engine is a stochastic shortest-path Monte Carlo simulator (1,000 draws). For each
-              candidate pathway from first medical contact (FMC) to device, the engine composes the relevant
-              ED and hub distributions across all interleaving legs. The reported endpoint is FMC-to-device
-              time, with the 90-minute guideline rendered on every time chart [5,6]. Probability of meeting
-              the guideline is the primary action metric for the field crew.
+              Emergency medical dispatch in the United States is managed by approximately 17,000
+              independent agencies operating on legacy computer-aided dispatch systems designed for
+              jurisdictional compliance, not clinical optimization. Three structural failures follow
+              from this architecture. The nearest available advanced life support unit is invisible to
+              the dispatching system if it sits across an agency boundary. Units return to fixed home
+              stations regardless of current demand distribution. Crews use static bypass protocols
+              based on geographic distance rather than real-time predictions of door-in-door-out and
+              door-to-balloon times.
             </p>
-          </Section>
-
-          <Section title="Clinical modeling">
             <p>
-              Mortality benefit is anchored in published time-to-treatment elasticities for primary
-              percutaneous coronary intervention. Each 30-minute reduction in ischemic time is associated
-              with a measurable absolute mortality reduction at 1 year [7,8]. System-level lives-saved
-              estimates apply this elasticity to the modeled FMC-to-device shift across the eligible
-              STEMI cohort.
+              In the largest national prehospital STEMI cohort published to date, the median EMS
+              interval was 57.0 minutes in rural settings and 37.6 minutes in urban settings, a gap of
+              19.4 minutes that persisted after controlling for loaded mileage [1]. The authors
+              estimated a 17.4% excess annual mortality in rural STEMI patients attributable to this
+              disparity. The gap is structural, not geographic, and is therefore modifiable.
             </p>
-          </Section>
+          </Section2>
 
-          <Section title="Coverage and financial modeling">
-            <p>
-              Population access is computed against U.S. Census Bureau CenPop2020 mean block-group
-              centroids for Delaware. Drive time uses haversine distance with a 1.35 detour factor at
-              45 mph average speed. The current six-center network is benchmarked against a
-              seven-center scenario that adds a mid-state PCI hub at Milford. Financial attribution
-              uses CMI-weighted DRG capture for incremental STEMI volumes and standard payback
-              methodology. Optimal EMS unit siting follows the maximum expected covering location
-              problem (MEXCLP) [9].
-            </p>
-          </Section>
-
-          <Section title="Data provenance">
-            <p>
-              Registry inputs: NCDR ACTION (DIDO), CathPCI (D2B). Geographic baseline: U.S. Census
-              CenPop2020, FIPS 10. Network topology: pilot Delaware STEMI network, six PCI-capable
-              centers (four in Delaware, two on the Eastern Shore of Maryland). All numbers carry
-              their derivation; no synthetic patient records are used.
-            </p>
-          </Section>
-
-          <Section title="References">
-            <ol className="list-decimal pl-5 space-y-1.5 text-[13px] text-slate-300">
+          {/* 2. Specific Aims */}
+          <Section2 num="2" title="Specific aims">
+            <p>The dashboard operationalizes three aims drawn directly from the underlying research program.</p>
+            <ol className="list-decimal pl-6 space-y-2 mt-2">
               <li>
-                Cannon CP, Brindis RG, Chaitman BR, et al. 2013 ACCF/AHA Key Data Elements and
-                Definitions for Measuring the Clinical Management and Outcomes of Patients With
-                Acute Coronary Syndromes. <em>J Am Coll Cardiol</em> 2013;61(9):992 to 1025.
+                Provide real-time, NCDR-anchored predictions of door-in-door-out time at each spoke
+                emergency department and door-to-balloon time at each percutaneous coronary
+                intervention hub, conditioned on current network state.
               </li>
               <li>
-                Brindis RG, Fitzgerald S, Anderson HV, et al. The American College of Cardiology
-                National Cardiovascular Data Registry (ACC-NCDR): building a national clinical data
-                repository. <em>J Am Coll Cardiol</em> 2001;37(8):2240 to 2245.
+                Produce a stochastic shortest-path routing recommendation from first medical contact
+                to device, with explicit probability of meeting the 90-minute guideline.
               </li>
               <li>
-                Diercks DB, Kontos MC, Chen AY, et al. Utilization and impact of pre-hospital
-                electrocardiograms for patients with acute ST-segment elevation myocardial infarction:
-                data from NCDR ACTION Registry. <em>J Am Coll Cardiol</em> 2009;53(2):161 to 166.
-              </li>
-              <li>
-                Krumholz HM, Bradley EH, Nallamothu BK, et al. A campaign to improve the timeliness
-                of primary percutaneous coronary intervention: Door-to-Balloon: An Alliance for
-                Quality. <em>JACC Cardiovasc Interv</em> 2008;1(1):97 to 104.
-              </li>
-              <li>
-                O'Gara PT, Kushner FG, Ascheim DD, et al. 2013 ACCF/AHA Guideline for the Management
-                of ST-Elevation Myocardial Infarction. <em>J Am Coll Cardiol</em> 2013;61(4):e78 to e140.
-              </li>
-              <li>
-                Jollis JG, Granger CB, Henry TD, et al. Systems of care for ST-segment-elevation
-                myocardial infarction: a report from the American Heart Association's Mission:
-                Lifeline. <em>Circ Cardiovasc Qual Outcomes</em> 2012;5(4):423 to 428.
-              </li>
-              <li>
-                De Luca G, Suryapranata H, Ottervanger JP, Antman EM. Time delay to treatment and
-                mortality in primary angioplasty for acute myocardial infarction: every minute of
-                delay counts. <em>Circulation</em> 2004;109(10):1223 to 1225.
-              </li>
-              <li>
-                Nallamothu BK, Bates ER, Herrin J, et al. Times to treatment in transfer patients
-                undergoing primary percutaneous coronary intervention in the United States.
-                <em> Circulation</em> 2005;111(6):761 to 767.
-              </li>
-              <li>
-                Daskin MS. A maximum expected covering location model: formulation, properties and
-                heuristic solution. <em>Transp Sci</em> 1983;17(1):48 to 70.
+                Quantify the population-level mortality and access benefit of network-aware dispatch
+                and surface it in formats appropriate to operational, quality, and policy audiences.
               </li>
             </ol>
-          </Section>
+          </Section2>
 
-          <div className="text-[11px] text-slate-500 border-t border-[#334155] pt-3">
-            This dashboard is a research-grade decision support prototype. It is not a regulated
-            medical device. Clinical and financial figures are estimates and require local validation
-            before operational use.
+          {/* 3. Background and Significance */}
+          <Section2 num="3" title="Background and significance">
+            <h3 className="text-[15px] font-semibold mt-3 mb-1 text-[#1a1e2e]">3.1 STEMI epidemiology and the time imperative</h3>
+            <p>
+              Approximately 165,000 STEMI hospitalizations occur annually in the United States,
+              generating roughly $5.8 billion in acute care costs. When primary percutaneous coronary
+              intervention is delivered within 90 minutes of first medical contact, 30-day mortality
+              approaches 4 to 6 percent. Beyond 90 minutes, mortality rises substantially. The ACC and
+              AHA guideline target is met in fewer than 65 percent of cases nationally [2,3].
+            </p>
+
+            <h3 className="text-[15px] font-semibold mt-4 mb-1 text-[#1a1e2e]">3.2 The rural mortality disparity</h3>
+            <p>
+              Rural STEMI patients face a qualitatively different care pathway. The 19.4-minute median
+              EMS interval gap reported by Stopyra and colleagues is driven by EMS system architecture:
+              volunteer workforce attrition, static deployment, cross-jurisdictional blindness, and the
+              absence of any network-level optimization [1]. Each of these is independently improvable.
+            </p>
+
+            <h3 className="text-[15px] font-semibold mt-4 mb-1 text-[#1a1e2e]">3.3 The operations-research foundation</h3>
+            <p>
+              The ambulance location and deployment problem has a mature operations-research literature.
+              The Maximum Expected Coverage Location Problem [4,5], hypercube queuing models, and System
+              Status Management are validated approaches to optimizing unit count, placement, and
+              dynamic redeployment. Comparative simulation studies report mean response time
+              improvements of approximately 58 seconds and 6 percent absolute gain in priority-call
+              coverage within 8 minutes [6]. These gains are independent of routing intelligence and
+              compose with it.
+            </p>
+
+            <h3 className="text-[15px] font-semibold mt-4 mb-1 text-[#1a1e2e]">3.4 Why NCDR is the essential data source</h3>
+            <p>
+              The NCDR ACTION Registry and CathPCI Registry are the only national data sources that
+              contain the process-time variables required for this model: facility-level DIDO
+              distributions, D2B distributions stratified by pre-activation status, and FMC-to-device
+              times across a representative sample of US STEMI care settings. Approximately 700
+              hospitals contribute. Claims data do not contain these variables. Electronic health
+              record data are not nationally harmonized [7,8].
+            </p>
+          </Section2>
+
+          {/* 4. Methods */}
+          <Section2 num="4" title="Methods">
+            <h3 className="text-[15px] font-semibold mt-3 mb-1 text-[#1a1e2e]">4.1 Decision-analytic structure</h3>
+            <p>
+              The STEMI care pathway is formalized as a directed weighted graph. Nodes are the patient
+              origin, candidate EMS units, spoke emergency departments, and PCI-capable hubs. Edges are
+              transitions: dispatch, response, scene, bypass decision, transport, DIDO, transfer, and
+              D2B. Each edge weight is a probability distribution, not a point estimate, parameterized
+              by NCDR data and updated by current network state.
+            </p>
+
+            <h3 className="text-[15px] font-semibold mt-4 mb-1 text-[#1a1e2e]">4.2 Prediction sub-models</h3>
+            <p>
+              Door-in-door-out time at each spoke is predicted from facility-level NCDR percentiles,
+              current emergency department census, and time-of-day load multipliers. Door-to-balloon
+              time at each hub is predicted from CathPCI distributions stratified by pre-activation
+              status, cath-lab queue depth, and on-call team posture. Outputs are reported as P10,
+              P50, and P90 to make uncertainty explicit at the point of care [9,10].
+            </p>
+
+            <h3 className="text-[15px] font-semibold mt-4 mb-1 text-[#1a1e2e]">4.3 Routing engine</h3>
+            <p>
+              The routing engine is a stochastic shortest-path Monte Carlo simulator with 1,000 draws
+              per pathway. The objective is to minimize expected FMC-to-device time across the full
+              pathway distribution, subject to unit availability and facility capacity constraints.
+              The probability of meeting the 90-minute guideline is the primary action metric for the
+              field crew. Compute time is under 500 milliseconds per case.
+            </p>
+
+            <h3 className="text-[15px] font-semibold mt-4 mb-1 text-[#1a1e2e]">4.4 Dose-response and mortality benefit</h3>
+            <p>
+              Mortality benefit is anchored in published time-to-treatment elasticities for primary
+              percutaneous coronary intervention [11,12]. The primary specification is nonlinear,
+              reflecting the steeper early-ischemia mortality curve. A linear specification of
+              approximately 3 percent relative mortality increase per minute of additional 911-to-PCI
+              time is reported as a sensitivity bracket. System-level lives-saved estimates apply this
+              elasticity to the modeled FMC-to-device shift across the eligible STEMI cohort.
+            </p>
+
+            <h3 className="text-[15px] font-semibold mt-4 mb-1 text-[#1a1e2e]">4.5 Coverage and siting</h3>
+            <p>
+              Population access is computed against U.S. Census Bureau CenPop2020 mean block-group
+              centroids. Drive time uses haversine distance with a 1.35 detour factor at 45 mph
+              average speed. Optimal EMS unit siting follows the Maximum Expected Coverage Location
+              Problem formulation of Daskin [4]. Multiperiod redeployment for dynamic operations
+              follows Rajagopalan and colleagues [13].
+            </p>
+          </Section2>
+
+          {/* 5. Innovation and Anticipated Impact */}
+          <Section2 num="5" title="Innovation and anticipated impact">
+            <h3 className="text-[15px] font-semibold mt-3 mb-1 text-[#1a1e2e]">5.1 Clinical impact</h3>
+            <p>
+              The dashboard delivers a defensible, NCDR-anchored estimate of expected FMC-to-device
+              time and the probability of meeting the 90-minute guideline at the moment of routing.
+              The point-of-care metric is the action metric. Crew, spoke, and hub views are aligned
+              to the same underlying predictions.
+            </p>
+
+            <h3 className="text-[15px] font-semibold mt-4 mb-1 text-[#1a1e2e]">5.2 Quality and registry impact</h3>
+            <p>
+              Predictions and outcomes feed back to a structured benchmarking layer aligned with
+              Mission: Lifeline categories [14] and the NCDR percentile distributions. Quality
+              improvement officers can identify the highest-yield bottleneck (typically ECG to
+              activation) and target intervention without a separate analytic project.
+            </p>
+
+            <h3 className="text-[15px] font-semibold mt-4 mb-1 text-[#1a1e2e]">5.3 Policy impact</h3>
+            <p>
+              The Coverage layer surfaces the population access gap and rural-urban EMS interval
+              disparity in a form usable by state health departments, the HRSA Federal Office of Rural
+              Health Policy, and CMS innovation program officers. The HRSA office invests
+              approximately $300 million annually in rural health programs. The dashboard provides
+              the structured evidence base for directing a defined share of that investment toward
+              network-optimized EMS deployment.
+            </p>
+          </Section2>
+
+          {/* 6. Data provenance and limitations */}
+          <Section2 num="6" title="Data provenance and limitations">
+            <p>
+              Registry inputs are derived from public NCDR ACTION and CathPCI distributions. The
+              geographic baseline is U.S. Census Bureau CenPop2020 (FIPS 10). The active patient and
+              routing scenario shown in the Live Event layer are illustrative. Production deployment
+              requires a Data Use Agreement with NCDR, a live computer-aided dispatch feed, and local
+              IRB review. The dashboard is a research-grade decision-support prototype. It is not a
+              regulated medical device. Clinical and financial figures are estimates and require
+              local validation before operational use.
+            </p>
+          </Section2>
+
+          {/* 7. References */}
+          <Section2 num="7" title="Key references">
+            <ol className="list-decimal pl-6 space-y-2 text-[13.5px]">
+              <li>Stopyra JP, Crowe RP, Snavely AC, et al. Prehospital Time Disparities for Rural Patients with Suspected STEMI. <em>Prehospital Emerg Care</em>. 2023;27(4):488 to 495.</li>
+              <li>O'Gara PT, Kushner FG, Ascheim DD, et al. 2013 ACCF/AHA Guideline for the Management of ST-Elevation Myocardial Infarction. <em>J Am Coll Cardiol</em>. 2013;61(4):e78 to e140.</li>
+              <li>Tamis-Holland JE, et al. SCAI Expert Consensus Statement on the Management of Patients With STEMI Referred for Primary PCI. <em>J Soc Cardiovasc Angiogr Interv</em>. 2024;3(11):102294.</li>
+              <li>Daskin MS. A maximum expected covering location model: formulation, properties and heuristic solution. <em>Transp Sci</em>. 1983;17(1):48 to 70.</li>
+              <li>Church RL, ReVelle C. The maximal covering location problem. <em>Papers in Regional Science</em>. 1974;32(1):101 to 118.</li>
+              <li>Rajagopalan HK, Saydam C, Xiao J. A multiperiod set covering location model for dynamic redeployment of ambulances. <em>Comput Oper Res</em>. 2008;35(3):814 to 826.</li>
+              <li>Cannon CP, Brindis RG, Chaitman BR, et al. 2013 ACCF/AHA Key Data Elements and Definitions for Measuring the Clinical Management and Outcomes of Patients With Acute Coronary Syndromes. <em>J Am Coll Cardiol</em>. 2013;61(9):992 to 1025.</li>
+              <li>Brindis RG, Fitzgerald S, Anderson HV, et al. The American College of Cardiology National Cardiovascular Data Registry. <em>J Am Coll Cardiol</em>. 2001;37(8):2240 to 2245.</li>
+              <li>Diercks DB, Kontos MC, Chen AY, et al. Utilization and impact of pre-hospital electrocardiograms for patients with acute STEMI: data from NCDR ACTION Registry. <em>J Am Coll Cardiol</em>. 2009;53(2):161 to 166.</li>
+              <li>Krumholz HM, Bradley EH, Nallamothu BK, et al. A campaign to improve the timeliness of primary percutaneous coronary intervention: Door-to-Balloon: An Alliance for Quality. <em>JACC Cardiovasc Interv</em>. 2008;1(1):97 to 104.</li>
+              <li>De Luca G, Suryapranata H, Ottervanger JP, Antman EM. Time delay to treatment and mortality in primary angioplasty for acute myocardial infarction: every minute of delay counts. <em>Circulation</em>. 2004;109(10):1223 to 1225.</li>
+              <li>Nallamothu BK, Normand SL, Wang Y, et al. Relation between door-to-balloon times and mortality after primary percutaneous coronary intervention over time. <em>Lancet</em>. 2015;385(9973):1114 to 22.</li>
+              <li>Nallamothu BK, Bates ER, Herrin J, et al. Times to treatment in transfer patients undergoing primary PCI in the United States. <em>Circulation</em>. 2005;111(6):761 to 767.</li>
+              <li>Jollis JG, Granger CB, Henry TD, et al. Systems of care for ST-segment-elevation myocardial infarction: a report from the American Heart Association's Mission: Lifeline. <em>Circ Cardiovasc Qual Outcomes</em>. 2012;5(4):423 to 428.</li>
+              <li>National Cardiovascular Data Registry. ACTION Registry / Chest Pain-MI. American College of Cardiology. ncdr.com/webncdr/action.</li>
+              <li>National Cardiovascular Data Registry. CathPCI Registry. American College of Cardiology. ncdr.com/webncdr/cathpci.</li>
+            </ol>
+          </Section2>
+
+          {/* Footer */}
+          <div className="border-t border-[#d4d6dc] pt-4 mt-6 text-[11px] text-[#7a7f8e] flex flex-wrap justify-between gap-2" style={{ fontFamily: 'JetBrains Mono, ui-monospace, monospace' }}>
+            <span>STEMI Network Intelligence · v1.0</span>
+            <span>Decision-support prototype · Not a regulated medical device</span>
           </div>
         </div>
       </div>
@@ -257,14 +368,19 @@ function AboutModal({ onClose }) {
   )
 }
 
-function Section({ title, children }) {
+function Section2({ num, title, children }) {
   return (
-    <div>
-      <div className="text-[10px] uppercase tracking-wider text-[#14b8a6] font-semibold mb-1.5">
-        {title}
+    <section>
+      <h2 className="text-[20px] font-semibold tracking-[-0.01em] text-[#1a1e2e] flex items-baseline gap-3 mb-2 border-b border-[#d4d6dc] pb-1">
+        <span className="text-[#b8860b] metric-num text-[16px]" style={{ fontFamily: 'JetBrains Mono, ui-monospace, monospace' }}>
+          {num}
+        </span>
+        <span>{title}</span>
+      </h2>
+      <div className="space-y-3">
+        {children}
       </div>
-      {children}
-    </div>
+    </section>
   )
 }
 
@@ -684,183 +800,201 @@ function DistroChart({ data, fill, anchor, unit, refLine, height = 160 }) {
 function CoverageOptimizerLayer() {
   const ca = CENSUS_ACCESS
   const cur = ca.current
-  const sc = ca.withMilford
+  const fmt = n => n.toLocaleString()
 
-  // Cumulative-access curve: % of state population reachable within X minutes
+  // Cumulative drive-time access curve (current network only)
   const accessCurve = [
-    { mins:  8, current: cur.pctWithin8min,  withMilford: sc.pctWithin8min },
-    { mins: 15, current: cur.pctWithin15min, withMilford: sc.pctWithin15min },
-    { mins: 30, current: cur.pctWithin30min, withMilford: sc.pctWithin30min },
-    { mins: 45, current: cur.pctWithin45min, withMilford: sc.pctWithin45min },
+    { mins:  8, pct: cur.pctWithin8min },
+    { mins: 15, pct: cur.pctWithin15min },
+    { mins: 30, pct: cur.pctWithin30min },
+    { mins: 45, pct: cur.pctWithin45min },
   ]
 
-  // Hub-assignment shift bar data
-  const hubShift = ca.hubAssignmentWithMilford.map(h => {
-    const before = ca.hubAssignmentCurrent.find(x => x.name === h.name)
-    return {
-      name: h.name,
-      current: before ? before.pop : 0,
-      withMilford: h.pop,
-    }
-  })
+  // Rural / urban EMS-time disparity (Stopyra et al. Prehosp Emerg Care 2023)
+  const ruralUrban = [
+    { setting: 'Urban', median: 37.6 },
+    { setting: 'Rural', median: 57.0 },
+  ]
 
-  // EMS-expansion investment scenario (illustrative, kept for financial framing)
+  // Catchment of the current 6-center network
+  const catchment = ca.hubAssignmentCurrent
+
+  // State-level investment framing (illustrative, anchored to MEXCLP siting)
   const opt = COVERAGE_DATA.optimizedState
-  const revMo = opt.annualRevenueCapture / 12
-  const opexMo = opt.annualOpEx / 12
-  const cap = opt.capitalCost
-  const investment = []
-  for (let m = 0; m <= 36; m++) {
-    investment.push({
-      month: m,
-      revenue: +((revMo * m) / 1000).toFixed(1),
-      opex: +((opexMo * m + cap) / 1000).toFixed(1),
-      net: +((((revMo - opexMo) * m) - cap) / 1000).toFixed(1),
-    })
-  }
-
-  const fmt = n => n.toLocaleString()
+  const stateInvest = [
+    ['Statewide STEMI volume (annual)',         '~185 events'],
+    ['Population beyond 30-min PCI access',     `${fmt(cur.residentsBeyond30min)} residents`],
+    ['Estimated rural excess mortality',        '17.4% per Stopyra et al. 2023'],
+    ['Modeled lives saved · 10-yr horizon',     '14 to 22 (illustrative)'],
+    ['HRSA Federal Office of Rural Health',     '$300M annual rural-health envelope'],
+    ['Section 1115 / CMS innovation pathways',  'Eligible'],
+  ]
 
   return (
     <div className="layer-fade space-y-4">
-      <div className="bg-[#172033] border border-[#334155] rounded px-4 py-2.5 text-[11px] text-slate-400 flex flex-wrap gap-x-5 gap-y-1">
+      {/* Audience banner */}
+      <div className="bg-[#172033] border border-[#334155] rounded px-4 py-3 flex flex-wrap gap-x-6 gap-y-1 text-[11px] text-slate-400">
+        <span className="text-[#14b8a6] font-semibold uppercase tracking-wider">For State and Policy Stakeholders</span>
         <span><span className="text-slate-500">Source:</span> {ca.source}</span>
         <span><span className="text-slate-500">Block groups:</span> <span className="metric-num text-slate-200">{ca.blockGroups}</span></span>
-        <span><span className="text-slate-500">Total residents:</span> <span className="metric-num text-slate-200">{fmt(ca.totalResidents)}</span></span>
-        <span><span className="text-slate-500">Drive model:</span> haversine × {ca.driveTimeModel.detourFactor} detour, {ca.driveTimeModel.speedMph} mph avg</span>
+        <span><span className="text-slate-500">Residents:</span> <span className="metric-num text-slate-200">{fmt(ca.totalResidents)}</span></span>
       </div>
 
+      {/* Top KPIs */}
       <div className="grid grid-cols-12 gap-4">
-        <KPICard
+        <StatBigCard
           col="col-span-12 md:col-span-4"
-          title="Pop. within 30-min PCI access"
-          subtitle="Census 2020, statewide"
-          current={`${cur.pctWithin30min}%`}
-          optimized={`${sc.pctWithin30min}%`}
-          delta={`+${ca.delta.pctWithin30minDelta} pp`}
-          accent="ok"
+          label="Population beyond 30-min PCI access"
+          big={fmt(cur.residentsBeyond30min)}
+          unit="residents"
+          sub={`${(100 - cur.pctWithin30min).toFixed(1)}% of state · current 6-center network`}
+          accent="bad"
         />
-        <KPICard
+        <StatBigCard
           col="col-span-12 md:col-span-4"
-          title="Mean drive to nearest PCI"
-          subtitle="Population-weighted"
-          current={`${cur.meanDriveMin} min`}
-          optimized={`${sc.meanDriveMin} min`}
-          delta={`-${ca.delta.meanDriveSavedMin} min`}
-          accent="ok"
+          label="Rural vs. urban EMS interval"
+          big="+19.4"
+          unit="min gap"
+          sub="57.0 min rural vs. 37.6 min urban (Stopyra 2023, n=23,700)"
+          accent="bad"
         />
-        <KPICard
+        <StatBigCard
           col="col-span-12 md:col-span-4"
-          title="Residents gaining ≤30-min access"
-          subtitle="With + Milford PCI center"
-          current={`${fmt(cur.residentsBeyond30min)} beyond`}
-          optimized={`${fmt(sc.residentsBeyond30min)} beyond`}
-          delta={`+${fmt(ca.delta.residentsGaining30minAccess)} (${ca.delta.pctOfState}%)`}
-          accent="ok"
-          big
+          label="Estimated excess rural STEMI mortality"
+          big="17.4%"
+          unit="annual"
+          sub="Modifiable through network-aware EMS dispatch"
+          accent="bad"
         />
       </div>
 
       <div className="grid grid-cols-12 gap-4">
-        <Panel className="col-span-12 lg:col-span-7" title="Cumulative Drive-Time Access · Current vs. + Milford PCI">
-          <div style={{ width: '100%', height: 240 }}>
+        <Panel className="col-span-12 lg:col-span-7" title="Cumulative Drive-Time Access to PCI · Statewide">
+          <div className="text-[11px] text-slate-500 mb-2">
+            Share of Delaware residents reachable to the nearest PCI-capable hospital within each drive-time threshold. Current six-center network. The 30-minute threshold is the operational policy target for direct-to-PCI access.
+          </div>
+          <div style={{ width: '100%', height: 220 }}>
             <ResponsiveContainer>
               <LineChart data={accessCurve} margin={{ top: 10, right: 25, left: 0, bottom: 5 }}>
                 <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
                 <XAxis dataKey="mins" tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#475569" label={{ value: 'Drive-time threshold (min)', position: 'insideBottom', offset: -2, fill: '#64748b', fontSize: 10 }} />
                 <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#475569" domain={[40, 100]} label={{ value: '% pop. reachable', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6 }} formatter={(v, n) => [`${v}%`, n]} labelFormatter={l => `≤ ${l} min`} />
-                <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
-                <ReferenceLine x={30} stroke="#ef4444" strokeDasharray="4 2" label={{ value: '30-min target', fill: '#ef4444', fontSize: 10, position: 'top' }} />
-                <Line type="monotone" dataKey="current" name="Current 6-center network" stroke="#94a3b8" strokeWidth={2.5} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="withMilford" name="+ Milford PCI (7 centers)" stroke="#14b8a6" strokeWidth={2.5} dot={{ r: 3 }} />
+                <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6 }} formatter={(v) => [`${v}%`, '% pop.']} labelFormatter={l => `≤ ${l} min`} />
+                <ReferenceLine x={30} stroke="#ef4444" strokeDasharray="4 2" label={{ value: '30-min policy target', fill: '#ef4444', fontSize: 10, position: 'top' }} />
+                <Line type="monotone" dataKey="pct" name="Current network" stroke="#14b8a6" strokeWidth={2.5} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
+          <div className="text-[11px] text-slate-400 mt-2 flex justify-between">
+            <span>Mean drive (population-weighted): <span className="metric-num text-slate-200">{cur.meanDriveMin} min</span></span>
+            <span>Median: <span className="metric-num text-slate-200">{cur.medianDriveMin} min</span></span>
+          </div>
         </Panel>
 
-        <Panel className="col-span-12 lg:col-span-5" title="Catchment Shift by Hub · Population Reassigned">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-[10px] uppercase tracking-wider text-slate-500">
-                <th className="text-left py-1.5">Hub</th>
-                <th className="text-right py-1.5">Current</th>
-                <th className="text-right py-1.5">+ Milford</th>
-                <th className="text-right py-1.5">Δ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ca.hubAssignmentWithMilford.map(h => {
-                const before = ca.hubAssignmentCurrent.find(x => x.name === h.name)
-                const beforePop = before ? before.pop : 0
-                const delta = h.pop - beforePop
-                const isNew = h.isNew
-                const deltaColor = delta > 0 ? 'text-[#22c55e]' : delta < 0 ? 'text-[#f59e0b]' : 'text-slate-500'
-                return (
-                  <tr key={h.name} className="border-t border-[#334155]/60">
-                    <td className="py-1.5">
-                      <div className={['font-medium', isNew ? 'text-[#14b8a6]' : 'text-slate-200'].join(' ')}>
-                        {h.name}
-                        {isNew && <span className="ml-1.5 text-[9px] uppercase tracking-wider bg-[#14b8a6] text-slate-900 px-1.5 py-0.5 rounded">NEW</span>}
-                      </div>
-                      <div className="text-[10px] text-slate-500">{h.city}</div>
-                    </td>
-                    <td className="py-1.5 text-right metric-num text-slate-300">{fmt(beforePop)}</td>
-                    <td className="py-1.5 text-right metric-num text-slate-100">{fmt(h.pop)}</td>
-                    <td className={['py-1.5 text-right metric-num font-semibold', deltaColor].join(' ')}>
-                      {delta > 0 ? '+' : ''}{fmt(delta)}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </Panel>
-      </div>
-
-      <div className="grid grid-cols-12 gap-4">
-        <Panel className="col-span-12 lg:col-span-5" title="Capital Scenario · EMS Expansion (illustrative)" accent="teal">
+        <Panel className="col-span-12 lg:col-span-5" title="Rural vs. Urban Median EMS Interval">
           <div className="text-[11px] text-slate-500 mb-2">
-            Separate scenario, layered on access analysis. Numbers illustrative until tied to live registry feed.
+            ESO Data Collaborative, 23,700 suspected STEMI responses across 1,366 EMS agencies. The disparity is structural, not geographic, and is modifiable through network-level dispatch optimization.
           </div>
-          <table className="w-full text-sm">
-            <tbody>
-              {[
-                ['Capital investment (2 units)', `$${(opt.capitalCost / 1000).toFixed(0)}K`],
-                ['Annual operating cost', `$${(opt.annualOpEx / 1000).toFixed(0)}K`],
-                ['Annual revenue capture', `$${(opt.annualRevenueCapture / 1000).toFixed(0)}K`],
-                ['Net annual contribution', `+$${(opt.netContribution / 1000).toFixed(0)}K`],
-                ['Payback period', `${opt.paybackMonths} months`],
-                ['Lives saved 10-yr (modeled)', '14 to 22'],
-              ].map(([k, v]) => (
-                <tr key={k} className="border-b border-[#334155]/60">
-                  <td className="py-2 text-slate-300">{k}</td>
-                  <td className="py-2 text-right metric-num text-slate-100 font-semibold">{v}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Panel>
-
-        <Panel className="col-span-12 lg:col-span-7" title="36-Month Cumulative Cash Flow">
-          <div style={{ width: '100%', height: 240 }}>
+          <div style={{ width: '100%', height: 200 }}>
             <ResponsiveContainer>
-              <LineChart data={investment} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
-                <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#475569" label={{ value: 'Month', position: 'insideBottom', offset: -2, fill: '#64748b', fontSize: 10 }} />
-                <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#475569" label={{ value: '$K', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6 }} formatter={(v, n) => [`$${v}K`, n]} labelFormatter={(m) => `Month ${m}`} />
-                <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
-                <ReferenceLine x={24} stroke="#22c55e" strokeDasharray="4 2" label={{ value: 'Payback (m24)', fill: '#22c55e', fontSize: 10, position: 'top' }} />
-                <ReferenceLine y={0} stroke="#475569" />
-                <Line type="monotone" dataKey="revenue" name="Revenue capture" stroke="#22c55e" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="opex" name="Cumulative OpEx + Cap" stroke="#ef4444" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="net" name="Net (cumulative)" stroke="#14b8a6" strokeWidth={2.5} dot={false} />
-              </LineChart>
+              <BarChart data={ruralUrban} layout="vertical" margin={{ top: 10, right: 30, left: 25, bottom: 5 }}>
+                <CartesianGrid stroke="#334155" strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#475569" label={{ value: 'Median EMS interval (min)', position: 'insideBottom', offset: -2, fill: '#64748b', fontSize: 10 }} />
+                <YAxis dataKey="setting" type="category" tick={{ fill: '#e2e8f0', fontSize: 12 }} stroke="#475569" />
+                <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6 }} formatter={v => [`${v} min`, 'Median']} />
+                <Bar dataKey="median" radius={[0, 4, 4, 0]}>
+                  {ruralUrban.map((d, i) => (
+                    <Cell key={i} fill={d.setting === 'Rural' ? '#ef4444' : '#94a3b8'} />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </Panel>
       </div>
+
+      <Panel title="Current PCI Hub Catchment · Population Served by Each Center">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-[10px] uppercase tracking-wider text-slate-500">
+              <th className="text-left py-2">Hub</th>
+              <th className="text-left py-2">City</th>
+              <th className="text-right py-2">Population assigned</th>
+              <th className="text-right py-2">% of state</th>
+              <th className="py-2 w-1/3">Share</th>
+            </tr>
+          </thead>
+          <tbody>
+            {catchment.map(h => (
+              <tr key={h.name} className="border-t border-[#334155]/60">
+                <td className="py-2 text-slate-100 font-medium">
+                  {h.name}
+                  <span className={[
+                    'ml-2 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border',
+                    h.state === 'DE' ? 'border-[#38bdf8]/40 text-[#38bdf8]' : 'border-[#a855f7]/40 text-[#a855f7]',
+                  ].join(' ')}>{h.state}</span>
+                </td>
+                <td className="py-2 text-slate-400">{h.city}</td>
+                <td className="py-2 text-right metric-num text-slate-200">{fmt(h.pop)}</td>
+                <td className="py-2 text-right metric-num text-slate-300">{h.pctOfState}%</td>
+                <td className="py-2 pl-3">
+                  <div className="h-2 bg-[#0b1322] rounded">
+                    <div className="h-full rounded bg-[#14b8a6]" style={{ width: `${h.pctOfState}%` }} />
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Panel>
+
+      <Panel title="State-Level Investment Framing" accent="teal">
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-7">
+            <table className="w-full text-sm">
+              <tbody>
+                {stateInvest.map(([k, v]) => (
+                  <tr key={k} className="border-b border-[#334155]/60">
+                    <td className="py-2 text-slate-300">{k}</td>
+                    <td className="py-2 text-right metric-num text-slate-100 font-semibold">{v}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="col-span-12 md:col-span-5 text-[12px] text-slate-300 leading-relaxed bg-[#172033] border border-[#334155] rounded p-3">
+            <div className="text-[#14b8a6] text-[10px] uppercase tracking-wider font-semibold mb-1.5">
+              Policy framing
+            </div>
+            <p className="mb-2">
+              The rural EMS time gap is not a geographic constant. It is a function of dispatch architecture, unit positioning, and routing intelligence. Each is independently improvable.
+            </p>
+            <p>
+              State health departments and HRSA grantmakers can prioritize EMS optimization investment using the access curve and catchment data above. Capital scenarios are sized at the network level and aligned with Mission: Lifeline performance targets.
+            </p>
+          </div>
+        </div>
+      </Panel>
+    </div>
+  )
+}
+
+function StatBigCard({ col, label, big, unit, sub, accent }) {
+  const accentMap = {
+    bad:  { border: 'border-l-[#ef4444]', tone: 'text-[#ef4444]' },
+    ok:   { border: 'border-l-[#22c55e]', tone: 'text-[#22c55e]' },
+    warn: { border: 'border-l-[#f59e0b]', tone: 'text-[#f59e0b]' },
+    info: { border: 'border-l-[#475569]', tone: 'text-slate-200' },
+  }
+  const a = accentMap[accent] || accentMap.info
+  return (
+    <div className={[col, 'bg-[#1e293b] border border-[#334155] rounded-md p-4 border-l-4', a.border].join(' ')}>
+      <div className="text-[11px] uppercase tracking-wider text-slate-400">{label}</div>
+      <div className="mt-3 flex items-baseline gap-2">
+        <span className={['metric-num text-4xl font-bold', a.tone].join(' ')}>{big}</span>
+        <span className="text-sm text-slate-400">{unit}</span>
+      </div>
+      <div className="mt-2 text-[11px] text-slate-400 leading-snug">{sub}</div>
     </div>
   )
 }
@@ -1224,13 +1358,29 @@ export default function App() {
   const [layer, setLayer] = useState('live_event')
   const [aboutOpen, setAboutOpen] = useState(false)
 
-  // Esc to close About
+  // Esc returns to dashboard from the About page
   useEffect(() => {
     if (!aboutOpen) return
     const onKey = e => { if (e.key === 'Escape') setAboutOpen(false) }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [aboutOpen])
+
+  if (aboutOpen) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] text-slate-100 flex flex-col">
+        <Header onAbout={() => setAboutOpen(false)} aboutActive />
+        <main className="flex-1">
+          <AboutPage onBack={() => setAboutOpen(false)} />
+        </main>
+        <footer className="border-t border-[#334155] bg-[#0b1322] px-6 py-2.5 text-[11px] text-slate-500 flex flex-wrap gap-x-4 gap-y-1 justify-between">
+          <span>Data source: NCDR ACTION + CathPCI · U.S. Census CenPop2020</span>
+          <span>Architecture: stochastic shortest-path simulator</span>
+          <span>© 2026 STEMI-NI</span>
+        </footer>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 flex flex-col">
@@ -1251,7 +1401,6 @@ export default function App() {
         <span>© 2026 STEMI-NI</span>
       </footer>
 
-      {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
     </div>
   )
 }
