@@ -162,10 +162,7 @@ function AboutPage({ onBack }) {
           </p>
         </header>
 
-        {/* Hero figure showing the solution */}
-        <NetworkAwareFigure />
-
-        <div className="space-y-8 text-[14.5px] leading-[1.7] text-[#252a3d] max-w-3xl mx-auto mt-8">
+        <div className="space-y-8 text-[14.5px] leading-[1.7] text-[#252a3d] max-w-3xl mx-auto mt-6">
           {/* 1. Why This Is Important */}
           <Section2 num="1" title="Why this is important">
             <p>
@@ -283,6 +280,11 @@ function AboutPage({ onBack }) {
               The probability of meeting the 90-minute guideline is the primary action metric for the
               field crew. Compute time is under 500 milliseconds per case.
             </p>
+
+            {/* Hero figure: network-aware vs linear node activation, placed under the routing engine section */}
+            <div className="not-prose -mx-4 sm:-mx-8 lg:-mx-16 my-4">
+              <NetworkAwareFigure />
+            </div>
 
             <h3 className="text-[15px] font-semibold mt-4 mb-1 text-[#1a1e2e]">4.4 Dose-response and mortality benefit</h3>
             <p>
