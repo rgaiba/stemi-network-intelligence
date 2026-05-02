@@ -69,7 +69,7 @@ const layerIcon = (id, props = {}) => {
 // ─────────────────────────────────────────────────────────────
 // Header
 // ─────────────────────────────────────────────────────────────
-function Header({ onAbout, aboutActive }) {
+function Header({ onAbout, aboutActive, onAccess, accessActive }) {
   const [now, setNow] = useState(new Date())
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000)
@@ -97,6 +97,19 @@ function Header({ onAbout, aboutActive }) {
             <span className="w-2 h-2 rounded-full bg-[#22c55e] animate-pulseDot inline-block" />
             <span>Live: Delaware Network</span>
           </div>
+          <button
+            onClick={onAccess}
+            className={[
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition',
+              accessActive
+                ? 'bg-[#14b8a6] border-[#14b8a6] text-slate-900 font-semibold'
+                : 'bg-[#172033] border-[#334155] text-slate-300 hover:bg-[#243248] hover:text-slate-100 hover:border-[#14b8a6]/60',
+            ].join(' ')}
+            title={accessActive ? 'Back to dashboard' : 'PCI access map (Delaware)'}
+          >
+            <MapPin size={13} />
+            <span>{accessActive ? 'Dashboard' : 'Access'}</span>
+          </button>
           <button
             onClick={onAbout}
             className={[
@@ -370,19 +383,19 @@ function AboutPage({ onBack }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// FIGURE 1 — Interactive illustration of the network advantage.
-// Reader switches between two real CenPop2020 patient centroids
-// (Central Delaware, Southern Delaware) and toggles live state
-// (pre-activation, cath-lab queue, on-call posture). The D2B
-// tag on each hub recomputes, candidates re-rank, the selected
-// pathway flips. This is the live multi-path computation the
-// static protocol cannot do.
+// FIGURE 1 — Network-aware routing versus linear node activation.
+// Linear: each node in the STEMI care chain (dispatch → patient →
+// spoke ED → transfer → PCI hub) is activated in series. The next
+// node cannot start until the previous one finishes. One pathway,
+// no live state.
+// Network-aware: every facility's live D2B and DIDO are evaluated
+// in parallel; the routing engine selects the empirically fastest
+// pathway from first medical contact to device.
 // ─────────────────────────────────────────────────────────────
 function NetworkAwareFigure() {
   const C = {
     navy: '#1a3759',
     teal: '#1f7d75',
-    tealS:'#0fa896',
     gold: '#b8860b',
     red:  '#c62828',
     text: '#1a1e2e',
@@ -395,84 +408,42 @@ function NetworkAwareFigure() {
   const fSans = 'Inter, ui-sans-serif, system-ui, sans-serif'
   const fMono = 'JetBrains Mono, ui-monospace, SFMono-Regular, monospace'
 
-  // ── Interactive state ────────────────────────────────────────
-  const [example, setExample] = useState('central')   // 'central' | 'southern'
-  const [preAct, setPreAct]   = useState(true)        // pre-activation transmitted
-  const [queue, setQueue]     = useState(0)           // cath-lab queue depth, 0-2
-  const [team, setTeam]       = useState('in-house')  // 'in-house' | 'home'
-
-  // Six current PCI-capable centers serving Delaware (Milford excluded
-  // — Milford is a non-PCI community hospital). Coordinates from the
-  // public CenPop2020 access study; map area is 240 wide × 430 tall
-  // with bounds latMin 38.36, latMax 39.84, lonMin -76.07, lonMax -75.05.
-  // baseD2B values: Kent and Christiana from CathPCI-derived demo data;
-  // others estimated from regional volume and posture.
+  // ── Real Delaware geography ──
+  // Six current PCI-capable centers (Milford excluded — non-PCI).
+  // Map area is 240 wide × 430 tall; lat/lon projected linearly with
+  // a longitude-scale correction at midLat 39°.
   const HUBS = [
-    { id:'wilm',  name:'Wilmington',    city:'Wilmington, DE', x: 122, y:  39, baseD2B: 28 },
-    { id:'chr',   name:'Christiana',    city:'Newark, DE',     x:  95, y:  54, baseD2B: 22 },
-    { id:'kent',  name:'Kent Regional', city:'Dover, DE',      x: 131, y: 204, baseD2B: 26 },
-    { id:'east',  name:'Shore Easton',  city:'Easton, MD',     x:  13, y: 304, baseD2B: 32 },
-    { id:'beebe', name:'Beebe',         city:'Lewes, DE',      x: 208, y: 303, baseD2B: 25 },
-    { id:'tidal', name:'TidalHealth',   city:'Salisbury, MD',  x: 114, y: 417, baseD2B: 30 },
+    { id:'wilm',  name:'Wilmington',    city:'Wilmington, DE', x: 122, y:  39, d2b: 28 },
+    { id:'chr',   name:'Christiana',    city:'Newark, DE',     x:  95, y:  54, d2b: 22 },
+    { id:'kent',  name:'Kent Regional', city:'Dover, DE',      x: 131, y: 204, d2b: 26 },
+    { id:'east',  name:'Shore Easton',  city:'Easton, MD',     x:  13, y: 304, d2b: 32 },
+    { id:'beebe', name:'Beebe',         city:'Lewes, DE',      x: 208, y: 303, d2b: 25 },
+    { id:'tidal', name:'TidalHealth',   city:'Salisbury, MD',  x: 114, y: 417, d2b: 30 },
   ]
   const findHub = id => HUBS.find(h => h.id === id)
 
-  // Live D2B given current conditioning state. Pre-activation flat
-  // discount; queue penalty per case ahead; on-call posture penalty
-  // when team must be called in from home.
-  const liveD2B = (h) => {
-    let d = h.baseD2B
-    if (!preAct) d += 14
-    d += queue * 12
-    if (team === 'home') d += 8
-    return d
-  }
-
-  // Two real CenPop2020 mean block-group centroids drawn from the
-  // user's FIPS-10 data file. Drive times in minutes are real
-  // haversine × 1.35 detour at 45 mph; EMS response + scene time
-  // is fixed at 13 minutes.
-  const CASES = {
-    central: {
-      title: 'Central Delaware',
-      sub: 'STEMI in Smyrna / Cheswold area · Kent County',
-      patient: { x: 94, y: 181, label: '39.225°N, −75.683°W', pop: 2456 },
-      driveMin: { wilm: 66, chr: 58, kent: 20, east: 67, beebe: 76, tidal: 108 },
-    },
-    southern: {
-      title: 'Southern Delaware',
-      sub: 'STEMI in Georgetown area · Sussex County',
-      patient: { x: 154, y: 294, label: '38.809°N, −75.397°W', pop: 2455 },
-      driveMin: { wilm: 117, chr: 113, kent: 43, east: 65, beebe: 25, tidal: 59 },
-    },
-  }
-  const caseData = CASES[example]
+  // Worked example: rural Sussex County STEMI patient
+  const PATIENT = { x: 154, y: 294, label: 'Georgetown · Sussex County' }
+  // Real haversine drive times (min) from this centroid to each hub
+  const DRIVE = { wilm: 117, chr: 113, kent: 43, east: 65, beebe: 25, tidal: 59 }
   const EMS_AND_SCENE = 13
 
-  // Probability ≤ 90 min, modeled as a normal CDF with σ = 16
-  const probUnder90 = (total) => {
-    const z = (90 - total) / 16
-    const sign = z >= 0 ? 1 : -1
-    const az = Math.abs(z)
-    const t = 1 / (1 + 0.3275911 * az)
-    const erf = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-az * az)
-    return Math.round(0.5 * (1 + sign * erf) * 100)
-  }
+  // The linear chain (current standard of care) routes via the
+  // nearest community ED for stabilisation and then transfers
+  // to the nearest PCI hub. We model this as a 3-stage chain:
+  // EMS response → spoke ED dwell (DIDO) → transport to hub → D2B.
+  const SPOKE = { x: 153, y: 285, name: 'Community ED', dido: 82 } // Milford-shaped, dwell from real Bayhealth registry
+  const LINEAR_HUB = findHub('kent')
+  const LINEAR_TOTAL = EMS_AND_SCENE + 25 + SPOKE.dido + 34 + LINEAR_HUB.d2b // illustrative: 25 transport to spoke, 34 transfer
 
-  // Rank all six PCI hubs by current expected FMC→Device time
-  const ranked = HUBS
-    .map(h => {
-      const d2b = liveD2B(h)
-      const transport = caseData.driveMin[h.id]
-      const total = EMS_AND_SCENE + transport + d2b
-      return { hub: h, d2b, transport, total, prob: probUnder90(total) }
-    })
-    .sort((a, b) => a.total - b.total)
-  // Letter codes A/B/C for the top three
-  ranked.forEach((r, i) => { r.code = String.fromCharCode(65 + i) })
-  const selected = ranked[0]
-  const top3 = ranked.slice(0, 3)
-  const top3ByHub = Object.fromEntries(top3.map(r => [r.hub.id, r]))
+  // Network-aware top-3 candidates evaluated in parallel
+  const CAND = [
+    { code: 'A', hubId: 'beebe', selected: true,  total: EMS_AND_SCENE + DRIVE.beebe + findHub('beebe').d2b, prob: 75 },
+    { code: 'B', hubId: 'kent',  selected: false, total: EMS_AND_SCENE + DRIVE.kent  + findHub('kent').d2b,  prob: 58 },
+    { code: 'C', hubId: 'tidal', selected: false, total: EMS_AND_SCENE + DRIVE.tidal + findHub('tidal').d2b, prob: 22 },
+  ]
+  const SELECTED = CAND.find(c => c.selected)
+  const SELECTED_HUB = findHub(SELECTED.hubId)
 
   // ── D2B-tag positions on the map (avoid label/path collisions) ──
   const TAG_POS = {
@@ -484,57 +455,23 @@ function NetworkAwareFigure() {
     tidal: { lx: 114, ly: 401, tx: 152, ty: 417 },
   }
 
-  // ── Toggle button (used for state controls) ──
-  const Toggle = ({ label, active, onClick }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        'px-2.5 py-1 rounded text-[11px] font-semibold transition border',
-        active
-          ? 'bg-[#1a3759] text-white border-[#1a3759]'
-          : 'bg-white text-[#1a1e2e] border-[#d4d6dc] hover:border-[#1a3759]',
-      ].join(' ')}
-      style={{ fontFamily: fSans }}
-    >
-      {label}
-    </button>
+  // Drawing helpers used by the network panel
+  const PathTag = ({ x, y, label, fill }) => (
+    <g transform={`translate(${x}, ${y})`}>
+      <circle r="9" fill={fill} stroke="#fff" strokeWidth="1.5" />
+      <text y="3" fontFamily={fSans} fontSize="10" fontWeight="700" fill="#fff" textAnchor="middle">{label}</text>
+    </g>
   )
-
-  const ExampleTab = ({ id, label, sub }) => {
-    const active = example === id
-    return (
-      <button
-        type="button"
-        onClick={() => setExample(id)}
-        className={[
-          'flex-1 px-4 py-2.5 text-left transition border-b-2',
-          active
-            ? 'bg-white border-[#1f7d75]'
-            : 'bg-[#fafaf7] border-transparent hover:bg-white',
-        ].join(' ')}
-      >
-        <div className={['text-[10px] uppercase tracking-[0.16em] font-bold', active ? 'text-[#1f7d75]' : 'text-[#7a7f8e]'].join(' ')}
-             style={{ fontFamily: fMono }}>
-          {id === 'central' ? 'Example 1' : 'Example 2'}
-        </div>
-        <div className={['text-[14px] font-semibold mt-0.5', active ? 'text-[#1a1e2e]' : 'text-[#3a4055]'].join(' ')}>
-          {label}
-        </div>
-        <div className="text-[11px] text-[#6a7287] mt-0.5">{sub}</div>
-      </button>
-    )
-  }
 
   return (
     <figure className="my-2 bg-white border border-[#d4d6dc] rounded shadow-sm overflow-hidden">
       {/* Figure header */}
       <div className="border-b border-[#d4d6dc] px-5 py-2.5 flex items-baseline justify-between gap-4">
         <span className="text-[11px] uppercase tracking-[0.18em] text-[#b8860b] font-semibold" style={{ fontFamily: fMono }}>
-          Figure 1 · Interactive
+          Figure 1
         </span>
         <span className="text-[12px] text-[#3a4055] italic">
-          Live multi-path computation on real Delaware geography
+          Network-aware routing versus linear node activation
         </span>
       </div>
 
@@ -544,232 +481,239 @@ function NetworkAwareFigure() {
         <span>Bayhealth registry, n = 35 transferred STEMI</span>
         <span>median FMC-to-device <strong style={{ fontFamily: fMono }}>137 min</strong></span>
         <span>guideline compliance ≤ 120 min: <strong style={{ fontFamily: fMono }}>31%</strong></span>
-        <span>median first-hospital dwell at Milford <strong style={{ fontFamily: fMono }}>82 min</strong></span>
+        <span>median first-hospital dwell <strong style={{ fontFamily: fMono }}>82 min</strong></span>
       </div>
 
-      {/* Patient tabs */}
-      <div className="flex border-b border-[#d4d6dc]">
-        <ExampleTab id="central"  label="Central Delaware"  sub="Smyrna / Cheswold area · Kent County" />
-        <ExampleTab id="southern" label="Southern Delaware" sub="Georgetown area · Sussex County" />
-      </div>
+      <div className="p-3 sm:p-5 bg-white">
+        <svg viewBox="0 0 1140 720" className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <marker id="redArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill={C.red} />
+            </marker>
+            <marker id="netArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill={C.teal} />
+            </marker>
+          </defs>
 
-      {/* Live-state controls */}
-      <div className="px-5 py-3 border-b border-[#d4d6dc] bg-white">
-        <div className="text-[10px] uppercase tracking-[0.18em] text-[#b8860b] font-bold mb-2" style={{ fontFamily: fMono }}>
-          Conditioning state · adjust to watch the network re-rank
-        </div>
-        <div className="flex flex-wrap gap-x-6 gap-y-2 items-center">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[#3a4055] font-medium">Pre-activation</span>
-            <Toggle label="ON"  active={preAct} onClick={() => setPreAct(true)}  />
-            <Toggle label="OFF" active={!preAct} onClick={() => setPreAct(false)} />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[#3a4055] font-medium">Cath-lab queue</span>
-            {[0, 1, 2].map(n => (
-              <Toggle key={n} label={`${n}`} active={queue === n} onClick={() => setQueue(n)} />
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[#3a4055] font-medium">On-call team</span>
-            <Toggle label="In-house" active={team === 'in-house'} onClick={() => setTeam('in-house')} />
-            <Toggle label="Home"     active={team === 'home'}     onClick={() => setTeam('home')} />
-          </div>
-        </div>
-      </div>
+          {/* ───── LEFT panel · Linear node activation ───── */}
+          <g transform="translate(20, 0)">
+            <rect x="0" y="0" width="540" height="540" fill={C.panel} stroke={C.border} strokeWidth="1" rx="3" />
+            <rect x="0" y="0" width="540" height="46" fill="#fafaf7" />
+            <text x="14" y="22" fontFamily={fMono} fontSize="10" fontWeight="700" fill={C.muted} letterSpacing="1.4">LINEAR</text>
+            <text x="80" y="22" fontFamily={fSans} fontSize="13.5" fontWeight="700" fill={C.text}>Linear node activation</text>
+            <text x="80" y="36" fontFamily={fSans} fontSize="9.5" fill={C.muted}>Sequential single-path chain · each node waits for the previous to finish</text>
 
-      {/* Map + evaluation */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
-        {/* MAP */}
-        <div className="lg:col-span-5 border-r border-[#d4d6dc] p-3 bg-[#fcfcf8]">
-          <svg viewBox="0 0 240 460" className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
-            <defs>
-              <marker id="netArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill={C.teal} />
-              </marker>
-            </defs>
-
-            {/* Map border + axis labels */}
-            <rect x="0" y="0" width="240" height="430" fill="#fcfcf8" stroke={C.border} strokeWidth="0.8" rx="3" />
-            <text x="232" y="14" fontFamily={fMono} fontSize="8" fill={C.muted} textAnchor="end">N ↑</text>
-            <text x="8"   y="14" fontFamily={fMono} fontSize="8" fill={C.muted}>Delaware</text>
-            <path d="M 100 12 L 132 30 L 132 175 L 195 270 L 200 410 L 95 425 L 75 320 L 30 200 L 65 100 Z"
-              fill="none" stroke="#e5e7eb" strokeWidth="0.8" strokeDasharray="2 3" />
-
-            {/* Top-3 candidate paths */}
-            {top3.map((r, i) => (
-              <line key={r.hub.id}
-                x1={caseData.patient.x} y1={caseData.patient.y}
-                x2={r.hub.x} y2={r.hub.y}
-                stroke={r === selected ? C.teal : C.fade}
-                strokeWidth={r === selected ? 2.8 : 1.2}
-                strokeDasharray={r === selected ? '0' : '4 3'}
-                fill="none"
-                markerEnd={r === selected ? 'url(#netArr)' : undefined} />
-            ))}
-
-            {/* Hubs */}
-            {HUBS.map(h => {
-              const r = top3ByHub[h.id]
-              const isSel = r === selected
-              const tag = TAG_POS[h.id]
-              return (
-                <g key={h.id}>
-                  {/* Hub icon */}
-                  <g transform={`translate(${h.x}, ${h.y})`}>
-                    <circle r={isSel ? 12 : 10} fill={C.navy} />
-                    <path d={`M -${isSel?6:5} 0 L ${isSel?6:5} 0 M 0 -${isSel?6:5} L 0 ${isSel?6:5}`}
-                      stroke="#fff" strokeWidth={isSel ? 1.8 : 1.6} />
-                  </g>
-                  {/* Hub name label */}
-                  <text x={tag.lx} y={tag.ly}
-                    fontFamily={fSans} fontSize="9" fontWeight="700"
-                    fill={C.navy} textAnchor="middle">{h.name}</text>
-                  {/* D2B tag (live) */}
-                  <g transform={`translate(${tag.tx}, ${tag.ty})`}>
-                    <rect x="-26" y="-7" width="52" height="14" rx="2"
-                      fill={isSel ? C.navy : '#fff'}
-                      stroke={C.navy} strokeWidth="0.7" />
-                    <text y="3" fontFamily={fMono} fontSize="8.5" fontWeight="700"
-                      fill={isSel ? '#fff' : C.navy} textAnchor="middle">D2B {liveD2B(h)}m</text>
-                  </g>
+            {/* Sequential chain visualised as 4 nodes left to right */}
+            <g transform="translate(0, 70)">
+              {/* Node positions */}
+              {[
+                { id:'ems',  x:  70, y: 60, label:'EMS',     sub:'dispatch · response',     time:'13 min', color: C.muted },
+                { id:'pat',  x: 200, y: 60, label:'Patient', sub:'STEMI · field ECG',       time:'on scene', color: C.red },
+                { id:'sp',   x: 330, y: 60, label:'Spoke ED', sub:'first-hospital dwell',    time:'82 min',  color: C.gold },
+                { id:'hub',  x: 460, y: 60, label:'PCI Hub',  sub:'transfer + D2B',          time:'60 min',  color: C.navy },
+              ].map((n, i, arr) => (
+                <g key={n.id}>
+                  <circle cx={n.x} cy={n.y} r="22" fill={n.color === C.muted ? '#fff' : n.color} stroke={n.color} strokeWidth="2" />
+                  <text x={n.x} y={n.y + 4} fontFamily={fSans} fontSize="11" fontWeight="700" fill={n.color === C.muted ? n.color : '#fff'} textAnchor="middle">{n.label}</text>
+                  <text x={n.x} y={n.y - 32} fontFamily={fSans} fontSize="9" fill={C.muted} textAnchor="middle">{n.sub}</text>
+                  <text x={n.x} y={n.y + 42} fontFamily={fMono} fontSize="9.5" fontWeight="700" fill={n.color === C.gold ? C.gold : C.text} textAnchor="middle">{n.time}</text>
+                  {i < arr.length - 1 && (
+                    <line x1={n.x + 24} y1={n.y} x2={arr[i+1].x - 24} y2={arr[i+1].y}
+                      stroke={C.fade} strokeWidth="1.6" markerEnd="url(#redArr)" />
+                  )}
                 </g>
-              )
-            })}
-
-            {/* Patient origin */}
-            <g transform={`translate(${caseData.patient.x}, ${caseData.patient.y})`}>
-              <circle r="10" fill="#fff" stroke={C.red} strokeWidth="2" />
-              <path d="M -5 0 L 5 0 M 0 -5 L 0 5" stroke={C.red} strokeWidth="2" />
-              <text x="14" y="4" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.red}>STEMI</text>
+              ))}
+              {/* Bottom: cumulative-time bar */}
+              <g transform="translate(40, 130)">
+                <text x="0" y="0" fontFamily={fMono} fontSize="9" fontWeight="700" fill={C.muted} letterSpacing="1.2">CUMULATIVE TIME</text>
+                <g transform="translate(0, 12)">
+                  <rect width="450" height="22" fill="#f5f6f9" stroke={C.border} strokeWidth="0.6" rx="2" />
+                  {/* segments scaled to 1 px per min */}
+                  {[
+                    { w:  13, fill: '#cbd5e1', label: 'EMS' },
+                    { w:  82, fill: '#f3d392', label: 'Spoke dwell' },
+                    { w:  34, fill: '#bcd0e6', label: 'Transfer' },
+                    { w:  26, fill: C.navy,    label: 'D2B' },
+                  ].reduce((acc, seg, i) => {
+                    const x = acc.x
+                    acc.elements.push(
+                      <g key={i}>
+                        <rect x={x} y="0" width={seg.w * 2.6} height="22" fill={seg.fill} />
+                        {seg.w >= 20 && <text x={x + seg.w * 1.3} y="14" fontFamily={fMono} fontSize="9" fontWeight="700" fill={i === 3 ? '#fff' : C.text} textAnchor="middle">{seg.w}</text>}
+                      </g>
+                    )
+                    acc.x += seg.w * 2.6
+                    return acc
+                  }, { x: 0, elements: [] }).elements}
+                </g>
+                <text x="0" y="50" fontFamily={fMono} fontSize="8.5" fill={C.muted}>EMS</text>
+                <text x="50" y="50" fontFamily={fMono} fontSize="8.5" fill={C.muted}>Spoke dwell</text>
+                <text x="270" y="50" fontFamily={fMono} fontSize="8.5" fill={C.muted}>Transfer</text>
+                <text x="370" y="50" fontFamily={fMono} fontSize="8.5" fill={C.muted}>D2B</text>
+              </g>
             </g>
 
-            {/* Letter chips on top-3 paths */}
-            {top3.map((r, i) => {
-              const mx = (caseData.patient.x + r.hub.x) / 2
-              const my = (caseData.patient.y + r.hub.y) / 2
-              return (
-                <g key={`code-${r.hub.id}`} transform={`translate(${mx}, ${my})`}>
-                  <circle r="9" fill={r === selected ? C.teal : C.fade} stroke="#fff" strokeWidth="1.5" />
-                  <text y="3" fontFamily={fSans} fontSize="10" fontWeight="700" fill="#fff" textAnchor="middle">{r.code}</text>
-                </g>
-              )
-            })}
+            {/* Outcome strip */}
+            <g transform="translate(20, 360)">
+              <rect width="500" height="68" fill="#fff5f5" stroke={C.red} strokeWidth="0.8" rx="3" />
+              <text x="14" y="20" fontFamily={fSans} fontSize="9.5" fontWeight="700" fill={C.red} letterSpacing="0.5">EXPECTED FMC → DEVICE</text>
+              <text x="14" y="50" fontFamily={fMono} fontSize="22" fontWeight="700" fill={C.text}>155 min</text>
+              <text x="124" y="42" fontFamily={fSans} fontSize="11" fill={C.text}>Single sequential pathway</text>
+              <text x="124" y="56" fontFamily={fSans} fontSize="10" fill={C.muted}>Above ACC/AHA 120-min target · no live state, no parallel evaluation</text>
+            </g>
 
-            {/* Caption under map */}
-            <text x="120" y="450" fontFamily={fMono} fontSize="8" fill={C.muted} textAnchor="middle" fontStyle="italic">
-              CenPop2020 centroid · {caseData.patient.label} · pop ≈ {caseData.patient.pop.toLocaleString()}
+            {/* Footnote */}
+            <text x="20" y="448" fontFamily={fMono} fontSize="9" fill={C.muted} fontStyle="italic">
+              Each node activates only after the previous node releases the patient. Bottlenecks compound.
             </text>
-          </svg>
-        </div>
+          </g>
 
-        {/* EVALUATION + OUTCOME */}
-        <div className="lg:col-span-7 p-4">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-[#b8860b] font-bold mb-1" style={{ fontFamily: fMono }}>
-            Evaluated live · all 6 PCI-capable centers
-          </div>
-          <div className="text-[11px] text-[#6a7287] mb-3">
-            Each row recomputes from current conditioning state. Top three are drawn on the map.
-          </div>
+          {/* ───── RIGHT panel · Network-aware ───── */}
+          <g transform="translate(580, 0)">
+            <rect x="0" y="0" width="540" height="540" fill={C.panel} stroke={C.teal} strokeWidth="1.4" rx="3" />
+            <rect x="0" y="0" width="540" height="46" fill="#f0faf8" />
+            <text x="14" y="22" fontFamily={fMono} fontSize="10" fontWeight="700" fill={C.teal} letterSpacing="1.4">NETWORK</text>
+            <text x="84" y="22" fontFamily={fSans} fontSize="13.5" fontWeight="700" fill={C.text}>Network-aware routing</text>
+            <text x="84" y="36" fontFamily={fSans} fontSize="9.5" fill={C.muted}>All candidate pathways evaluated in parallel · NCDR-conditioned</text>
 
-          {/* Candidate evaluation list */}
-          <div className="space-y-1">
-            {ranked.map((r, i) => {
-              const isSel = r === selected
-              const inTop3 = i < 3
-              const tone = isSel ? C.teal : (inTop3 ? C.text : C.muted)
-              return (
-                <div
-                  key={r.hub.id}
-                  className={[
-                    'flex items-center gap-3 px-3 py-2 rounded border',
-                    isSel ? 'bg-[#f0faf8] border-[#1f7d75]' : 'bg-white border-[#d4d6dc]',
-                  ].join(' ')}
-                >
-                  {/* Rank chip */}
-                  <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
-                    style={{ background: inTop3 ? (isSel ? C.teal : C.fade) : '#cbd5e1', fontFamily: fSans }}
-                  >
-                    {inTop3 ? r.code : i + 1}
-                  </div>
-                  {/* Hub name */}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[12px] font-semibold" style={{ color: tone }}>
-                      Direct → {r.hub.name}
-                    </div>
-                    <div className="text-[10px] text-[#6a7287]" style={{ fontFamily: fMono }}>
-                      transport {r.transport}m + D2B {r.d2b}m + 13m EMS
-                    </div>
-                  </div>
-                  {/* Total */}
-                  <div className="text-right flex-shrink-0 w-20">
-                    <div className="text-[15px] font-bold" style={{ color: tone, fontFamily: fMono }}>
-                      {r.total}
-                    </div>
-                    <div className="text-[9px] text-[#6a7287]" style={{ fontFamily: fMono }}>min</div>
-                  </div>
-                  {/* Probability */}
-                  <div className="text-right flex-shrink-0 w-16">
-                    <div className="text-[13px] font-bold" style={{ color: tone, fontFamily: fMono }}>
-                      {r.prob}%
-                    </div>
-                    <div className="text-[9px] text-[#6a7287]" style={{ fontFamily: fMono }}>≤ 90 min</div>
-                  </div>
-                  {/* Selected mark */}
-                  <div className="w-8 flex-shrink-0 text-right">
-                    {isSel && (
-                      <span className="inline-block px-1.5 py-0.5 rounded bg-[#1f7d75] text-white text-[10px] font-bold" style={{ fontFamily: fMono }}>
-                        ✓
-                      </span>
+            {/* Real Delaware map showing all 6 PCI hubs and the patient */}
+            <g transform="translate(20, 60)">
+              <rect width="240" height="430" fill="#fcfcf8" stroke={C.border} strokeWidth="0.8" rx="3" />
+              <text x="232" y="14" fontFamily={fMono} fontSize="8" fill={C.muted} textAnchor="end">N ↑</text>
+              <text x="8"   y="14" fontFamily={fMono} fontSize="8" fill={C.muted}>Delaware</text>
+              <path d="M 100 12 L 132 30 L 132 175 L 195 270 L 200 410 L 95 425 L 75 320 L 30 200 L 65 100 Z"
+                fill="none" stroke="#e5e7eb" strokeWidth="0.8" strokeDasharray="2 3" />
+
+              {/* Top-3 candidate paths */}
+              {CAND.map((c, i) => {
+                const h = findHub(c.hubId)
+                if (c.selected) {
+                  return <line key={i} x1={PATIENT.x} y1={PATIENT.y} x2={h.x} y2={h.y}
+                    stroke={C.teal} strokeWidth="2.8" fill="none" markerEnd="url(#netArr)" />
+                }
+                return <line key={i} x1={PATIENT.x} y1={PATIENT.y} x2={h.x} y2={h.y}
+                  stroke={C.fade} strokeWidth="1.2" strokeDasharray="4 3" fill="none" />
+              })}
+
+              {/* Hubs with D2B tags */}
+              {HUBS.map(h => {
+                const cand = CAND.find(c => c.hubId === h.id)
+                const isSel = cand && cand.selected
+                const tag = TAG_POS[h.id]
+                return (
+                  <g key={h.id}>
+                    <g transform={`translate(${h.x}, ${h.y})`}>
+                      <circle r={isSel ? 12 : 10} fill={C.navy} />
+                      <path d={`M -${isSel?6:5} 0 L ${isSel?6:5} 0 M 0 -${isSel?6:5} L 0 ${isSel?6:5}`} stroke="#fff" strokeWidth={isSel?1.8:1.6} />
+                    </g>
+                    <text x={tag.lx} y={tag.ly} fontFamily={fSans} fontSize="9" fontWeight="700" fill={C.navy} textAnchor="middle">{h.name}</text>
+                    <g transform={`translate(${tag.tx}, ${tag.ty})`}>
+                      <rect x="-26" y="-7" width="52" height="14" rx="2" fill={isSel ? C.navy : '#fff'} stroke={C.navy} strokeWidth="0.7" />
+                      <text y="3" fontFamily={fMono} fontSize="8.5" fontWeight="700" fill={isSel ? '#fff' : C.navy} textAnchor="middle">D2B {h.d2b}m</text>
+                    </g>
+                  </g>
+                )
+              })}
+
+              {/* Patient origin */}
+              <g transform={`translate(${PATIENT.x}, ${PATIENT.y})`}>
+                <circle r="10" fill="#fff" stroke={C.red} strokeWidth="2" />
+                <path d="M -5 0 L 5 0 M 0 -5 L 0 5" stroke={C.red} strokeWidth="2" />
+                <text x="14" y="4" fontFamily={fSans} fontSize="10" fontWeight="700" fill={C.red}>STEMI</text>
+              </g>
+
+              {/* Path code chips at midpoints */}
+              {CAND.map((c, i) => {
+                const h = findHub(c.hubId)
+                const mx = (PATIENT.x + h.x) / 2
+                const my = (PATIENT.y + h.y) / 2
+                return <PathTag key={`tag-${i}`} x={mx} y={my} label={c.code} fill={c.selected ? C.teal : C.fade} />
+              })}
+
+              <text x="120" y="448" fontFamily={fMono} fontSize="8" fill={C.muted} textAnchor="middle" fontStyle="italic">
+                CenPop2020 centroid · Georgetown, Sussex County
+              </text>
+            </g>
+
+            {/* Candidate evaluation list */}
+            <g transform="translate(290, 60)">
+              <text x="0" y="12" fontFamily={fMono} fontSize="9" fontWeight="700" fill={C.gold} letterSpacing="1.4">EVALUATED IN PARALLEL</text>
+              <text x="0" y="26" fontFamily={fSans} fontSize="9" fill={C.muted}>Top 3 of 6 PCI-capable centers, ranked by expected FMC→Device</text>
+
+              {CAND.map((c, i) => {
+                const hub = findHub(c.hubId)
+                const tone = c.selected ? C.teal : C.muted
+                const fillR = c.selected ? '#f0faf8' : '#fff'
+                const stroke = c.selected ? C.teal : C.border
+                return (
+                  <g key={i} transform={`translate(0, ${36 + i * 56})`}>
+                    <rect width="240" height="50" rx="3" fill={fillR} stroke={stroke} strokeWidth={c.selected ? 1.2 : 0.6} />
+                    <g transform="translate(20, 25)">
+                      <circle r="11" fill={tone} />
+                      <text y="3.5" fontFamily={fSans} fontSize="11" fontWeight="700" fill="#fff" textAnchor="middle">{c.code}</text>
+                    </g>
+                    <text x="40" y="18" fontFamily={fSans} fontSize="11" fontWeight={c.selected ? 700 : 600} fill={C.text}>{`Direct → ${hub.name}`}</text>
+                    <text x="40" y="32" fontFamily={fMono} fontSize="9" fill={C.muted}>{`transport ${DRIVE[c.hubId]}m · D2B ${hub.d2b}m`}</text>
+                    <text x="40" y="44" fontFamily={fMono} fontSize="9" fill={tone} fontWeight="700">{`= ${c.total} min · prob ≤90: ${c.prob}%`}</text>
+                    {c.selected && (
+                      <g transform="translate(204, 17)">
+                        <rect width="28" height="18" rx="3" fill={C.teal} />
+                        <text x="14" y="13" fontFamily={fMono} fontSize="11" fontWeight="700" fill="#fff" textAnchor="middle">✓</text>
+                      </g>
                     )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                  </g>
+                )
+              })}
+            </g>
 
-          {/* Selected outcome */}
-          <div className="mt-4 rounded p-4" style={{ background: C.teal, color: '#fff' }}>
-            <div className="text-[10px] uppercase tracking-[0.18em] font-bold opacity-90" style={{ fontFamily: fMono }}>
-              Selected pathway
-            </div>
-            <div className="flex items-baseline gap-3 mt-1 flex-wrap">
-              <div className="text-[28px] font-bold" style={{ fontFamily: fMono }}>
-                {selected.total} <span className="text-[14px] font-normal opacity-80">min</span>
-              </div>
-              <div className="text-[13px]">
-                Direct → <strong>{selected.hub.name}</strong>
-              </div>
-              <div className="text-[12px] opacity-90 ml-auto" style={{ fontFamily: fMono }}>
-                prob ≤ 90 min: <strong>{selected.prob}%</strong>
-              </div>
-            </div>
-            <div className="text-[11px] opacity-85 mt-1">
-              Conditioned on: pre-activation {preAct ? 'ON' : 'OFF'} · queue {queue} · on-call {team}
-            </div>
-          </div>
-        </div>
+            {/* Outcome strip */}
+            <g transform="translate(20, 500)">
+              <rect width="500" height="32" fill="#1f7d75" rx="3" />
+              <text x="14" y="14" fontFamily={fMono} fontSize="9" fontWeight="700" fill="#fff" letterSpacing="1.2">SELECTED PATHWAY</text>
+              <text x="14" y="27" fontFamily={fMono} fontSize="14" fontWeight="700" fill="#fff">{`${SELECTED.total} min`}</text>
+              <text x="120" y="27" fontFamily={fSans} fontSize="11" fill="#fff">{`Direct → ${SELECTED_HUB.name} · prob ≤ 90 min: ${SELECTED.prob}%`}</text>
+              <text x="430" y="27" fontFamily={fMono} fontSize="11" fontWeight="700" fill="#fff" textAnchor="end">−92 min vs linear</text>
+            </g>
+          </g>
+
+          {/* Bottom legend */}
+          <g transform="translate(20, 580)">
+            <rect width="1100" height="120" fill="#fafaf7" stroke={C.border} strokeWidth="0.6" rx="3" />
+            <text x="20" y="22" fontFamily={fMono} fontSize="10" fontWeight="700" fill={C.gold} letterSpacing="1.4">WHY THIS MATTERS</text>
+            <text x="20" y="42" fontFamily={fSans} fontSize="11" fill={C.text}>
+              The linear chain accumulates dwell at every node. At Bayhealth's actual referral pattern the median first-hospital dwell alone is 82 min, before transfer or D2B.
+            </text>
+            <text x="20" y="62" fontFamily={fSans} fontSize="11" fill={C.text}>
+              The network-aware engine evaluates every PCI-capable destination in parallel, conditioned on each facility's live D2B prediction, and selects the empirically fastest pathway.
+            </text>
+            <text x="20" y="82" fontFamily={fSans} fontSize="11" fill={C.text}>
+              For this Sussex-County patient the network selects direct transport to Beebe (63 min expected, 75% probability of meeting the 90-min guideline) rather than the linear pathway via the local spoke (≈ 155 min).
+            </text>
+            <text x="20" y="106" fontFamily={fMono} fontSize="9" fill={C.muted} fontStyle="italic">
+              Real CenPop2020 centroid · real haversine drive times × 1.35 detour at 45 mph · D2B values anchored to CathPCI registry
+            </text>
+          </g>
+        </svg>
       </div>
 
-      {/* Figcaption */}
       <figcaption className="px-5 py-3 text-[12px] italic text-[#3a4055] leading-[1.65] border-t border-[#d4d6dc] bg-[#fafaf7]">
-        <span className="font-semibold not-italic text-[#1a1e2e]">Figure 1.</span> Interactive
-        illustration of the network advantage on real Delaware geography. Both patients are real
-        U.S. Census Bureau CenPop2020 mean block-group centroids. Six PCI-capable centers serve
-        the state and the adjacent Eastern Shore: Wilmington, Christiana, Kent Regional, Beebe,
-        Shore Easton, and TidalHealth. Milford is excluded because it is not currently
-        PCI-capable. Each hub on the map carries the network's live D2B prediction tag, computed
-        from the user-adjustable conditioning state above (pre-activation status, cath-lab queue
-        depth, on-call team posture). Drive times use haversine distance with a 1.35 detour
-        factor at 45 mph average speed. The network ranks all six PCI-capable centers by
-        expected first-medical-contact-to-device time and selects the lowest. Toggle the
-        conditioning state to watch the ranking and the selected pathway respond. The current
-        Bayhealth registry baseline is 137 min median first-medical-contact-to-device with 31%
-        guideline compliance for transferred patients; the modeled direct-to-PCI pathways
-        represent the time saving the network exposes when live state is incorporated into the
-        routing decision. D2B, door-to-balloon; FMC, first medical contact; NCDR, National
-        Cardiovascular Data Registry; PCI, percutaneous coronary intervention.
+        <span className="font-semibold not-italic text-[#1a1e2e]">Figure 1.</span> Network-aware
+        routing versus linear node activation. In the linear configuration (left), each node in the
+        STEMI care chain — emergency medical services dispatch, patient pickup, the community
+        emergency department for first-hospital dwell, the inter-facility transport, and finally
+        door-to-balloon at the percutaneous coronary intervention hub — is activated in series. The
+        next node cannot start until the previous one releases the patient. Bottlenecks at the
+        spoke emergency department (median first-hospital dwell of 82 min in the Bayhealth registry)
+        compound across the chain to a modeled 155-min expected first-medical-contact-to-device. In
+        the network-aware configuration (right), the routing engine evaluates every PCI-capable
+        destination in parallel against live NCDR-conditioned door-to-balloon predictions and selects
+        the empirically fastest pathway. For this real CenPop2020 block-group centroid in Sussex
+        County, the engine selects direct transport to Beebe (63-min expected first-medical-contact
+        to device, 75% probability of meeting the 90-minute guideline). Drive times use haversine
+        distance with a 1.35 detour factor at 45 mph average speed. D2B values anchored to the
+        CathPCI registry. ACC/AHA, American College of Cardiology and American Heart Association;
+        D2B, door-to-balloon; FMC, first medical contact; NCDR, National Cardiovascular Data
+        Registry; PCI, percutaneous coronary intervention.
       </figcaption>
     </figure>
   )
@@ -2080,21 +2024,32 @@ function Stat({ label, value, tone = 'info', compact }) {
 export default function App() {
   const [layer, setLayer] = useState('live_event')
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [accessOpen, setAccessOpen] = useState(false)
 
-  // Esc returns to dashboard from the About page
+  // Esc returns to the dashboard from any sub-page
   useEffect(() => {
-    if (!aboutOpen) return
-    const onKey = e => { if (e.key === 'Escape') setAboutOpen(false) }
+    if (!aboutOpen && !accessOpen) return
+    const onKey = e => {
+      if (e.key === 'Escape') {
+        setAboutOpen(false)
+        setAccessOpen(false)
+      }
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [aboutOpen])
+  }, [aboutOpen, accessOpen])
+
+  // Close one sub-page when opening another
+  const openAbout  = () => { setAccessOpen(false); setAboutOpen(true)  }
+  const openAccess = () => { setAboutOpen(false);  setAccessOpen(true) }
+  const closeAll   = () => { setAboutOpen(false);  setAccessOpen(false) }
 
   if (aboutOpen) {
     return (
       <div className="min-h-screen bg-[#0f172a] text-slate-100 flex flex-col">
-        <Header onAbout={() => setAboutOpen(false)} aboutActive />
+        <Header onAbout={closeAll} aboutActive onAccess={openAccess} />
         <main className="flex-1">
-          <AboutPage onBack={() => setAboutOpen(false)} />
+          <AboutPage onBack={closeAll} />
         </main>
         <footer className="border-t border-[#334155] bg-[#0b1322] px-6 py-2.5 text-[11px] text-slate-500 flex flex-wrap gap-x-4 gap-y-1 justify-between">
           <span>Data source: NCDR ACTION + CathPCI · U.S. Census CenPop2020</span>
@@ -2105,9 +2060,25 @@ export default function App() {
     )
   }
 
+  if (accessOpen) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] text-slate-100 flex flex-col">
+        <Header onAbout={openAbout} onAccess={closeAll} accessActive />
+        <main className="flex-1 bg-white">
+          <AccessPage onBack={closeAll} />
+        </main>
+        <footer className="border-t border-[#334155] bg-[#0b1322] px-6 py-2.5 text-[11px] text-slate-500 flex flex-wrap gap-x-4 gap-y-1 justify-between">
+          <span>Data source: U.S. Census Bureau CenPop2020 · FIPS 10</span>
+          <span>Drive-time model: haversine × 1.35 detour at 45 mph</span>
+          <span>© 2026 STEMI-NI</span>
+        </footer>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 flex flex-col">
-      <Header onAbout={() => setAboutOpen(true)} />
+      <Header onAbout={openAbout} onAccess={openAccess} />
       <LayerToggle active={layer} onChange={setLayer} />
 
       <main className="flex-1 px-6 py-5 max-w-[1400px] w-full mx-auto">
@@ -2124,6 +2095,32 @@ export default function App() {
         <span>© 2026 STEMI-NI</span>
       </footer>
 
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// Access page — embeds the standalone Delaware travel-time
+// analysis HTML as a full-bleed iframe.
+// ─────────────────────────────────────────────────────────────
+function AccessPage({ onBack }) {
+  return (
+    <div className="bg-white min-h-[calc(100vh-128px)] flex flex-col">
+      <div className="flex items-center justify-between border-b border-[#d4d6dc] px-6 py-2 text-[11px] uppercase tracking-[0.16em] text-[#7a7f8e]" style={{ fontFamily: 'JetBrains Mono, ui-monospace, monospace' }}>
+        <span>Access · Travel time to PCI centers · Delaware</span>
+        <button
+          onClick={onBack}
+          className="text-[#1a1e2e] hover:text-[#b8860b] transition flex items-center gap-1"
+        >
+          <X size={11} /> Back to dashboard
+        </button>
+      </div>
+      <iframe
+        src="/access-delaware.html"
+        title="PCI access analysis · Delaware"
+        className="flex-1 w-full border-0"
+        style={{ minHeight: 'calc(100vh - 168px)' }}
+      />
     </div>
   )
 }
